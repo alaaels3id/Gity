@@ -157,34 +157,9 @@ function registerIpcHandlers() {
 
   ipcMain.handle('notifications:show', async (_, { title, body, sound = true }: { title: string; body: string; sound?: boolean }) => {
     let delivered = false;
+    const notifTitle = title || 'Gity';
+    const notifBody = body || '';
 
-    // 1. Native Electron Notification with Gity App Icon
-    try {
-      if (Notification.isSupported()) {
-        const iconPath = path.join(app.getAppPath(), 'build/icon.png');
-        const icon = fs.existsSync(iconPath) ? nativeImage.createFromPath(iconPath) : undefined;
-        const notification = new Notification({
-          title: title || 'Gity',
-          body: body || '',
-          icon,
-          silent: true, // We handle sound explicitly via afplay so it never fails or clips
-        });
-
-        notification.on('click', () => {
-          if (mainWindow) {
-            if (mainWindow.isMinimized()) mainWindow.restore();
-            mainWindow.focus();
-          }
-        });
-
-        notification.show();
-        delivered = true;
-      }
-    } catch (err) {
-      console.warn('[Notifications] Electron Notification error:', err);
-    }
-
-    // 2. Guaranteed macOS Native Notification with Gity App Icon
     if (process.platform === 'darwin') {
       try {
         if (app.dock) {
@@ -194,10 +169,9 @@ function registerIpcHandlers() {
           exec('afplay /System/Library/Sounds/Ping.aiff', () => {});
         }
 
-        const notifTitle = title || 'Gity';
-        const notifBody = body || '';
-        const iconPath = path.join(app.getAppPath(), 'build/icon.png');
-        const notifierBinary = path.join(app.getAppPath(), 'build/GityNotifier.app/Contents/MacOS/terminal-notifier');
+        const notifierBinary = app.isPackaged
+          ? path.join(process.resourcesPath, 'GityNotifier.app/Contents/MacOS/terminal-notifier')
+          : path.join(app.getAppPath(), 'build/GityNotifier.app/Contents/MacOS/terminal-notifier');
 
         if (fs.existsSync(notifierBinary)) {
           const args = [
@@ -218,17 +192,63 @@ function registerIpcHandlers() {
               exec(`osascript -e 'display notification "${cleanBody}" with title "${cleanTitle}"${soundParam}'`);
             }
           });
+          delivered = true;
+        } else if (Notification.isSupported()) {
+          const iconPath = app.isPackaged
+            ? path.join(process.resourcesPath, 'icon.png')
+            : path.join(app.getAppPath(), 'build/icon.png');
+          const icon = fs.existsSync(iconPath) ? nativeImage.createFromPath(iconPath) : undefined;
+          const notification = new Notification({
+            title: notifTitle,
+            body: notifBody,
+            icon,
+            silent: true,
+          });
+
+          notification.on('click', () => {
+            if (mainWindow) {
+              if (mainWindow.isMinimized()) mainWindow.restore();
+              mainWindow.focus();
+            }
+          });
+
+          notification.show();
+          delivered = true;
         } else {
           const cleanTitle = notifTitle.replace(/["\\]/g, '\\$&');
           const cleanBody = notifBody.replace(/["\\]/g, '\\$&');
           const soundParam = sound ? ' sound name "Ping"' : '';
-          exec(`osascript -e 'display notification "${cleanBody}" with title "${cleanTitle}"${soundParam}'`, (err) => {
-            if (err) console.warn('[Notifications] osascript warning:', err);
-          });
+          exec(`osascript -e 'display notification "${cleanBody}" with title "${cleanTitle}"${soundParam}'`);
+          delivered = true;
         }
-        delivered = true;
       } catch (e) {
         console.warn('[Notifications] macOS dispatch error:', e);
+      }
+    } else {
+      // Windows / Linux native notifications
+      try {
+        if (Notification.isSupported()) {
+          const iconPath = path.join(app.getAppPath(), 'build/icon.png');
+          const icon = fs.existsSync(iconPath) ? nativeImage.createFromPath(iconPath) : undefined;
+          const notification = new Notification({
+            title: notifTitle,
+            body: notifBody,
+            icon,
+            silent: !sound,
+          });
+
+          notification.on('click', () => {
+            if (mainWindow) {
+              if (mainWindow.isMinimized()) mainWindow.restore();
+              mainWindow.focus();
+            }
+          });
+
+          notification.show();
+          delivered = true;
+        }
+      } catch (err) {
+        console.warn('[Notifications] Native Notification error:', err);
       }
     }
 

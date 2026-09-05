@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import gityLogo from '../assets/icon.png';
 import { 
   Folder, 
   FolderGit2, 
@@ -185,8 +186,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="no-drag px-3 pb-3 flex flex-col gap-3.5">
           {/* Studio Brand Header */}
           <div className="flex items-center gap-2.5 p-2.5 bg-white dark:bg-[#131929] border border-slate-200/90 dark:border-white/[0.08] rounded-xl shadow-sm">
-            <div className="w-8 h-8 rounded-lg bg-[#0a0d14] border border-white/[0.1] flex items-center justify-center shrink-0 p-1 shadow-sm">
-              <img src="/icon.png" alt="Gity" className="w-full h-full object-contain" />
+            <div className="w-8 h-8 rounded-lg bg-[#0a0d14] border border-white/[0.1] flex items-center justify-center shrink-0 p-1 shadow-sm overflow-hidden">
+              <img 
+                src={gityLogo} 
+                alt="Gity" 
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = './icon.png';
+                }}
+              />
             </div>
             <div className="overflow-hidden flex-1">
               <div className="flex items-center justify-between">
