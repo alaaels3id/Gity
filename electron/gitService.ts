@@ -1,7 +1,7 @@
 import { exec } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
-import { GitSummary, DetailedGitStatus, FetchResult, ChangedFile } from './types';
+import { GitSummary, DetailedGitStatus, FetchResult, PullResult, RemoteResult, ChangedFile, CheckoutResult, ResetResult } from './types';
 
 function getGitEnv(): NodeJS.ProcessEnv {
   const currentPath = process.env.PATH || '';
@@ -178,6 +178,71 @@ export async function fetchRemote(projectPath: string): Promise<FetchResult> {
   }
 }
 
+export async function pullProject(projectPath: string): Promise<PullResult> {
+  if (!isGitRepo(projectPath)) {
+    return {
+      success: false,
+      message: 'Not a git repository',
+      duration: '0s',
+      summary: {
+        isGit: false,
+        branch: 'No Git',
+        clean: true,
+        modifiedCount: 0,
+        ahead: 0,
+        behind: 0,
+        lastCommit: null,
+      },
+    };
+  }
+
+  const startTime = Date.now();
+  try {
+    const stdout = await runGitCommand('git pull', projectPath, 45000);
+    const duration = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+    const updatedSummary = await getGitSummary(projectPath);
+
+    return {
+      success: true,
+      message: stdout || 'Already up to date.',
+      duration,
+      summary: updatedSummary,
+    };
+  } catch (err: any) {
+    const duration = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+    const summary = await getGitSummary(projectPath);
+    let errMsg = err.message || 'Git pull failed';
+
+    if (
+      errMsg.includes('Please commit your changes or stash them before you merge') ||
+      errMsg.includes('Your local changes to the following files would be overwritten by merge')
+    ) {
+      errMsg = 'Pull failed: Uncommitted local changes would be overwritten. Please commit or stash your changes.';
+    } else if (errMsg.includes('Automatic merge failed') || errMsg.includes('CONFLICT')) {
+      errMsg = 'Pull failed: Merge conflicts detected. Resolve conflicts before proceeding.';
+    } else if (errMsg.includes('There is no tracking information for the current branch') || errMsg.includes('no tracking info')) {
+      errMsg = 'Pull failed: No upstream branch configured for the current branch.';
+    } else if (
+      errMsg.includes('Could not read from remote repository') ||
+      errMsg.includes('Permission denied') ||
+      errMsg.includes('Authentication failed') ||
+      errMsg.includes('access to this repository') ||
+      errMsg.includes('not have access')
+    ) {
+      errMsg = 'Access denied: Unable to read from remote repository. Check credentials or SSH keys.';
+    } else if (errMsg.includes('Could not resolve host') || errMsg.includes('timed out')) {
+      errMsg = 'Network error: Unable to reach remote git server.';
+    }
+
+    return {
+      success: false,
+      message: errMsg,
+      duration,
+      summary,
+    };
+  }
+}
+
 export async function getDetailedStatus(projectPath: string): Promise<DetailedGitStatus> {
   if (!isGitRepo(projectPath)) {
     throw new Error('Not a git repository');
@@ -296,4 +361,206 @@ export async function getGitRemotes(projectPath: string): Promise<{ name: string
     return [];
   }
 }
+
+export async function setRemoteUrl(projectPath: string, remoteName: string, newUrl: string): Promise<RemoteResult> {
+  if (!isGitRepo(projectPath)) {
+    return { success: false, message: 'Not a git repository' };
+  }
+
+  const trimmedName = (remoteName || 'origin').trim();
+  const trimmedUrl = (newUrl || '').trim();
+
+  if (!trimmedUrl) {
+    return { success: false, message: 'Remote URL cannot be empty' };
+  }
+
+  try {
+    const existingRemotes = await getGitRemotes(projectPath);
+    const exists = existingRemotes.some(r => r.name === trimmedName);
+
+    if (exists) {
+      await runGitCommand(`git remote set-url ${trimmedName} "${trimmedUrl}"`, projectPath);
+    } else {
+      await runGitCommand(`git remote add ${trimmedName} "${trimmedUrl}"`, projectPath);
+    }
+
+    const updatedRemotes = await getGitRemotes(projectPath);
+    return {
+      success: true,
+      message: `Successfully updated remote "${trimmedName}" to ${trimmedUrl}`,
+      remotes: updatedRemotes,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err.message || 'Failed to update remote URL',
+    };
+  }
+}
+
+export async function getProjectBranches(projectPath: string): Promise<string[]> {
+  if (!isGitRepo(projectPath)) return [];
+  try {
+    // 1. Get all local branches
+    const localOutput = await runGitCommand('git branch --format="%(refname:short)"', projectPath).catch(() => '');
+    const localBranches = localOutput.split('\n').map(b => b.trim()).filter(Boolean);
+
+    // 2. Get remote branches (e.g. origin/feature)
+    const remoteOutput = await runGitCommand('git branch -r --format="%(refname:short)"', projectPath).catch(() => '');
+    const remoteBranches = remoteOutput
+      .split('\n')
+      .map(b => b.trim())
+      .filter(b => b && !b.includes('/HEAD'));
+
+    const branchSet = new Set<string>(localBranches);
+
+    // Add unique remote branch names without remote prefix if not present locally
+    for (const rb of remoteBranches) {
+      const slashIndex = rb.indexOf('/');
+      const cleanName = slashIndex !== -1 ? rb.substring(slashIndex + 1) : rb;
+      if (!branchSet.has(cleanName)) {
+        branchSet.add(cleanName);
+      }
+    }
+
+    // Ensure active branch is included
+    const activeBranch = await runGitCommand('git rev-parse --abbrev-ref HEAD', projectPath).catch(() => '');
+    const cleanActive = activeBranch.trim();
+    if (cleanActive && cleanActive !== 'HEAD' && !branchSet.has(cleanActive)) {
+      branchSet.add(cleanActive);
+    }
+
+    // Sort with current/main/master first or alphabetical
+    const sorted = Array.from(branchSet).sort((a, b) => {
+      if (a === cleanActive) return -1;
+      if (b === cleanActive) return 1;
+      if (a === 'main' || a === 'master') return -1;
+      if (b === 'main' || b === 'master') return 1;
+      return a.localeCompare(b, undefined, { sensitivity: 'base' });
+    });
+
+    return sorted;
+  } catch {
+    return [];
+  }
+}
+
+export async function checkoutBranch(projectPath: string, branchName: string): Promise<CheckoutResult> {
+  if (!isGitRepo(projectPath)) {
+    return {
+      success: false,
+      branch: branchName,
+      message: 'Not a git repository',
+    };
+  }
+
+  const cleanBranch = (branchName || '').trim();
+  if (!cleanBranch) {
+    return {
+      success: false,
+      branch: branchName,
+      message: 'Branch name cannot be empty',
+    };
+  }
+
+  // Safety validation against flag options or command injection
+  if (cleanBranch.startsWith('-') || /[\s;`$|&><]/.test(cleanBranch)) {
+    return {
+      success: false,
+      branch: cleanBranch,
+      message: `Invalid branch name: ${cleanBranch}`,
+    };
+  }
+
+  try {
+    const stdout = await runGitCommand(`git checkout "${cleanBranch}"`, projectPath);
+    const summary = await getGitSummary(projectPath);
+    return {
+      success: true,
+      branch: summary.branch || cleanBranch,
+      message: stdout || `Switched to branch '${cleanBranch}'`,
+      summary,
+    };
+  } catch (err: any) {
+    let errMsg = err.message || 'Checkout failed';
+    if (errMsg.includes('Your local changes to the following files would be overwritten')) {
+      errMsg = 'Checkout failed: Local changes would be overwritten. Please commit, stash, or discard changes first.';
+    } else if (errMsg.includes('did not match any file(s) known to git')) {
+      errMsg = `Branch '${cleanBranch}' not found.`;
+    }
+    return {
+      success: false,
+      branch: cleanBranch,
+      message: errMsg,
+    };
+  }
+}
+
+export async function resetProjectChanges(
+  projectPath: string,
+  options: { filePath?: string; includeUntracked?: boolean } = {}
+): Promise<ResetResult> {
+  if (!isGitRepo(projectPath)) {
+    return {
+      success: false,
+      message: 'Not a git repository',
+    };
+  }
+
+  const { filePath, includeUntracked = true } = options;
+
+  try {
+    if (filePath) {
+      const cleanPath = filePath.trim();
+      if (!cleanPath || cleanPath.startsWith('-') || /[\r\n]/.test(cleanPath)) {
+        return { success: false, message: 'Invalid file path' };
+      }
+
+      // Check if file is untracked
+      const statusLine = await runGitCommand(`git status --porcelain -- "${cleanPath}"`, projectPath).catch(() => '');
+      if (statusLine.startsWith('??')) {
+        // Untracked file: remove via git clean, or direct unlink fallback
+        await runGitCommand(`git clean -f -- "${cleanPath}"`, projectPath).catch(async () => {
+          const fullPath = path.resolve(projectPath, cleanPath);
+          if (fullPath.startsWith(projectPath) && fs.existsSync(fullPath)) {
+            fs.rmSync(fullPath, { recursive: true, force: true });
+          }
+        });
+      } else {
+        // Tracked modified/staged/deleted file: unstage and restore to HEAD
+        await runGitCommand(`git reset HEAD -- "${cleanPath}"`, projectPath).catch(() => {});
+        await runGitCommand(`git checkout HEAD -- "${cleanPath}"`, projectPath);
+      }
+
+      const summary = await getGitSummary(projectPath);
+      return {
+        success: true,
+        message: `Discarded changes for ${cleanPath}`,
+        summary,
+      };
+    } else {
+      // Discard all changes in repository
+      // 1. Reset all staged and unstaged tracked changes to HEAD
+      await runGitCommand('git reset --hard HEAD', projectPath);
+
+      // 2. Remove untracked files & directories if requested
+      if (includeUntracked) {
+        await runGitCommand('git clean -fd', projectPath);
+      }
+
+      const summary = await getGitSummary(projectPath);
+      return {
+        success: true,
+        message: 'All uncommitted changes have been reset.',
+        summary,
+      };
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err.message || 'Failed to reset changes',
+    };
+  }
+}
+
 

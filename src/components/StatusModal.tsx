@@ -1,24 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { 
   X, 
+  RefreshCw, 
   GitBranch, 
   CheckCircle2, 
-  AlertTriangle, 
   ArrowUp, 
   ArrowDown, 
-  Folder, 
-  RefreshCw, 
-  FileCode,
-  Terminal
+  FileCode, 
+  Terminal, 
+  Folder 
 } from 'lucide-react';
-import { ProjectItem, DetailedGitStatus } from '../types';
+import { ProjectItem, GitStatusDetails } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 
 interface StatusModalProps {
   project: ProjectItem | null;
   onClose: () => void;
   onOpenFolder: (path: string) => void;
-  onFetchRemote: (path: string, id: string) => Promise<void>;
+  onFetchRemote: (path: string, id: string) => void;
 }
 
 export const StatusModal: React.FC<StatusModalProps> = ({
@@ -28,14 +27,15 @@ export const StatusModal: React.FC<StatusModalProps> = ({
   onFetchRemote,
 }) => {
   const { t } = useLanguage();
-  const [details, setDetails] = useState<DetailedGitStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [details, setDetails] = useState<GitStatusDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isFetching, setIsFetching] = useState(false);
 
   useEffect(() => {
-    if (!project) return;
-    loadStatus();
+    if (project) {
+      loadStatus();
+    }
   }, [project]);
 
   const loadStatus = async () => {
@@ -43,10 +43,18 @@ export const StatusModal: React.FC<StatusModalProps> = ({
     setLoading(true);
     setError(null);
     try {
+      if (!project.isGit) {
+        setDetails(null);
+        setLoading(false);
+        return;
+      }
       const api = window.gityAPI || window.api;
-      if (api?.getStatus) {
-        const data = await api.getStatus(project.path);
-        setDetails(data);
+      const getStatusFn = api?.getStatus || api?.getGitStatus;
+      if (getStatusFn) {
+        const res = await getStatusFn(project.path);
+        setDetails(res);
+      } else {
+        setError('Git status service is unavailable.');
       }
     } catch (err: any) {
       setError(err.message || 'Failed to read git status');
@@ -70,65 +78,84 @@ export const StatusModal: React.FC<StatusModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-[#111827] border border-white/15 rounded-2xl w-full max-w-2xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+      <div className="studio-card bg-white dark:bg-[#131929] border border-slate-200 dark:border-white/[0.1] rounded-2xl w-full max-w-2xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-white/[0.08] bg-slate-50 dark:bg-white/[0.02]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-              <GitBranch className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-500 shrink-0">
+              <GitBranch className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white leading-tight">{project.name}</h2>
-              <p className="text-xs text-slate-400 font-mono truncate max-w-md">{project.path}</p>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">{project.name}</h2>
+                <span className={`w-2 h-2 rounded-full ${project.clean ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]' : 'bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.5)]'}`} />
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate max-w-md mt-0.5">{project.path}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-lg studio-btn text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-5 overflow-y-auto flex-1 flex flex-col gap-4">
-          {loading ? (
+        <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-5">
+          {!project.isGit ? (
+            <div className="rounded-2xl p-8 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06]">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] flex items-center justify-center text-slate-400">
+                <GitBranch className="w-5 h-5 text-slate-400" />
+              </div>
+              <span className="font-bold text-sm text-slate-900 dark:text-white">{t('noGit')}</span>
+              <p className="text-slate-500 dark:text-slate-400 max-w-sm font-normal leading-relaxed">
+                This project directory does not contain an initialized Git repository.
+              </p>
+            </div>
+          ) : loading ? (
             <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3">
-              <RefreshCw className="w-7 h-7 animate-spin text-indigo-400" />
-              <span className="text-xs">{t('inspectingGit')}</span>
+              <RefreshCw className="w-7 h-7 animate-spin text-sky-500" />
+              <span className="text-xs font-semibold text-sky-500">{t('inspectingGit')}</span>
             </div>
           ) : error ? (
-            <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 text-xs text-rose-400">
-              <p className="font-semibold mb-1">Failed to read status:</p>
-              <p className="font-mono">{error}</p>
+            <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 text-xs text-rose-500 flex flex-col gap-2.5">
+              <p className="font-bold text-sm">STATUS ERROR:</p>
+              <p className="font-mono text-xs break-words">{error}</p>
+              <button
+                onClick={loadStatus}
+                className="studio-btn self-start px-3 py-1 text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+              >
+                Retry
+              </button>
             </div>
           ) : details ? (
             <>
               {/* Metrics Grid */}
-              <div className="grid grid-cols-4 gap-2.5">
-                <div className="bg-slate-900/80 border border-white/10 rounded-xl p-2.5 flex flex-col">
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{t('branch')}</span>
-                  <span className="text-sm font-mono font-bold text-slate-200 mt-1 truncate">{details.branch}</span>
+              <div className="grid grid-cols-4 gap-3">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] flex flex-col">
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('branch')}</span>
+                  <span className="text-xs font-mono font-bold text-sky-600 dark:text-sky-400 mt-1 truncate">{details.branch}</span>
                 </div>
-                <div className="bg-slate-900/80 border border-white/10 rounded-xl p-2.5 flex flex-col">
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{t('workingTree')}</span>
-                  <span className={`text-sm font-bold mt-1 ${details.clean ? 'text-emerald-400' : 'text-amber-400'}`}>
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] flex flex-col">
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('workingTree')}</span>
+                  <span className={`text-xs font-bold mt-1 ${details.clean ? 'text-emerald-500' : 'text-amber-500'}`}>
                     {details.clean ? t('cleanBadge') : `${details.filesCount} ${t('modifiedBadge')}`}
                   </span>
                 </div>
-                <div className="bg-slate-900/80 border border-white/10 rounded-xl p-2.5 flex flex-col">
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{t('ahead')}</span>
-                  <span className="text-sm font-bold text-indigo-400 mt-1 inline-flex items-center gap-1">
-                    <ArrowUp className="w-3 h-3" /> {details.ahead}
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] flex flex-col">
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('ahead')}</span>
+                  <span className="text-xs font-mono font-bold text-sky-500 mt-1 inline-flex items-center gap-1">
+                    <ArrowUp className="w-3.5 h-3.5" /> {details.ahead}
                   </span>
                 </div>
-                <div className="bg-slate-900/80 border border-white/10 rounded-xl p-2.5 flex flex-col">
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{t('behindMetric')}</span>
-                  <span className="text-sm font-bold text-sky-400 mt-1 inline-flex items-center gap-1">
-                    <ArrowDown className="w-3 h-3" /> {details.behind}
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] flex flex-col">
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('behindMetric')}</span>
+                  <span className="text-xs font-mono font-bold text-indigo-500 mt-1 inline-flex items-center gap-1">
+                    <ArrowDown className="w-3.5 h-3.5" /> {details.behind}
                   </span>
                 </div>
               </div>
@@ -136,31 +163,34 @@ export const StatusModal: React.FC<StatusModalProps> = ({
               {/* Changed Files */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <FileCode className="w-3.5 h-3.5 text-slate-400" />
-                    {t('changedFiles')} ({details.filesCount})
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <FileCode className="w-4 h-4 text-sky-500" />
+                    <span>{t('changedFiles')}</span>
+                    <span className="studio-pill bg-sky-500/10 border-sky-500/30 text-sky-600 dark:text-sky-400 text-[10px] py-0.5">
+                      {details.filesCount}
+                    </span>
                   </span>
                 </div>
 
-                <div className="bg-black/40 border border-white/10 rounded-xl max-h-48 overflow-y-auto divide-y divide-white/5">
+                <div className="rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-white/[0.04]">
                   {details.files.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-emerald-400 font-medium flex items-center justify-center gap-1.5">
+                    <div className="p-4 text-center text-xs text-emerald-500 font-bold flex items-center justify-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4" />
-                      {t('cleanTreeDesc')}
+                      <span>{t('cleanTreeDesc')}</span>
                     </div>
                   ) : (
                     details.files.map((file, index) => {
-                      let badgeColor = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
-                      if (file.type === 'untracked') badgeColor = 'bg-sky-500/20 text-sky-300 border-sky-500/30';
-                      if (file.type === 'added') badgeColor = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
-                      if (file.type === 'deleted') badgeColor = 'bg-rose-500/20 text-rose-300 border-rose-500/30';
+                      let badgeClass = 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30';
+                      if (file.type === 'untracked') badgeClass = 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/30';
+                      if (file.type === 'added') badgeClass = 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30';
+                      if (file.type === 'deleted') badgeClass = 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30';
 
                       return (
-                        <div key={index} className="px-3 py-1.5 flex items-center gap-2.5 text-xs font-mono">
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${badgeColor}`}>
+                        <div key={index} className="px-3.5 py-2 flex items-center gap-2.5 text-xs font-mono hover:bg-slate-100 dark:hover:bg-white/[0.04] transition-colors">
+                          <span className={`studio-pill text-[10px] py-0.5 ${badgeClass}`}>
                             {file.code || file.type}
                           </span>
-                          <span className="text-slate-300 truncate" title={file.path}>{file.path}</span>
+                          <span className="text-slate-700 dark:text-slate-200 truncate font-medium" title={file.path}>{file.path}</span>
                         </div>
                       );
                     })
@@ -171,11 +201,11 @@ export const StatusModal: React.FC<StatusModalProps> = ({
               {/* Diff Stat */}
               {details.diffStat && (
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <Terminal className="w-3.5 h-3.5 text-slate-400" />
-                    {t('diffSummary')}
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <Terminal className="w-4 h-4 text-sky-500" />
+                    <span>{t('diffSummary')}</span>
                   </span>
-                  <pre className="bg-black/50 border border-white/10 rounded-xl p-3 font-mono text-[11px] text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-32" dir="ltr">
+                  <pre className="rounded-xl p-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] font-mono text-[11px] text-emerald-600 dark:text-emerald-400 overflow-x-auto whitespace-pre-wrap max-h-32" dir="ltr">
                     {details.diffStat}
                   </pre>
                 </div>
@@ -183,45 +213,58 @@ export const StatusModal: React.FC<StatusModalProps> = ({
 
               {/* Raw Git Status */}
               <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <Terminal className="w-3.5 h-3.5 text-slate-400" />
-                  {t('rawGitOutput')}
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                  <Terminal className="w-4 h-4 text-sky-500" />
+                  <span>{t('rawGitOutput')}</span>
                 </span>
-                <pre className="bg-black/60 border border-white/10 rounded-xl p-3 font-mono text-[11px] text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-36" dir="ltr">
+                <pre className="rounded-xl p-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] font-mono text-[11px] text-slate-600 dark:text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-36" dir="ltr">
                   {details.rawStatus}
                 </pre>
               </div>
             </>
-          ) : null}
+          ) : (
+            <div className="rounded-2xl p-8 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06]">
+              <span className="font-bold text-sm text-slate-900 dark:text-white">No status details available</span>
+              <p className="text-slate-500 dark:text-slate-400 max-w-sm font-normal leading-relaxed">
+                Git was unable to inspect the status of this directory.
+              </p>
+              <button
+                onClick={loadStatus}
+                className="studio-btn px-3.5 py-1.5 text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+              >
+                Retry
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3.5 border-t border-white/10 bg-slate-900/50 flex items-center justify-between gap-3">
-          <span className="text-xs text-slate-400 font-mono truncate">
-            {t('upstream')}: <span className="text-slate-300">{details?.tracking || 'None'}</span>
+        <div className="px-6 py-4 border-t border-slate-200 dark:border-white/[0.08] bg-slate-50 dark:bg-white/[0.02] flex items-center justify-between gap-3">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
+            {t('upstream')}: <span className="text-sky-600 dark:text-sky-400 font-mono font-semibold">{details?.tracking || 'NONE'}</span>
           </span>
 
           <div className="flex items-center gap-2">
             <button
               onClick={() => onOpenFolder(project.path)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-white/10 text-slate-200 transition-colors"
+              className="studio-btn px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white cursor-pointer gap-1.5"
             >
-              <Folder className="w-3.5 h-3.5 text-sky-400" />
+              <Folder className="w-3.5 h-3.5 text-sky-500" />
               <span>{t('openInFinder')}</span>
             </button>
 
             <button
               onClick={handleFetch}
               disabled={isFetching}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-white/10 text-slate-200 transition-colors disabled:opacity-50"
+              className="studio-btn px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white cursor-pointer gap-1.5"
             >
-              <RefreshCw className={`w-3.5 h-3.5 text-indigo-400 ${isFetching ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 text-sky-500 ${isFetching ? 'animate-spin' : ''}`} />
               <span>{isFetching ? t('fetching') : t('fetch')}</span>
             </button>
 
             <button
               onClick={onClose}
-              className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+              className="studio-btn-primary px-4 py-1.5 text-xs cursor-pointer"
             >
               {t('doneBtn')}
             </button>

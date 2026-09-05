@@ -8,6 +8,10 @@ export interface Translations {
   changeFolder: string;
   fetchAll: string;
   fetchingAllProgress: string;
+  fetchAllResult: string;
+  pullAll: string;
+  pullingAllProgress: string;
+  pullAllResult: string;
   refresh: string;
   settings: string;
   searchPlaceholder: string;
@@ -65,22 +69,53 @@ export interface Translations {
   openInFinder: string;
   openInEditor: string;
   fetchRemote: string;
+  pullNow: string;
+  pulling: string;
   gitStatusTitle: string;
   branch: string;
+  switchBranch: string;
+  switchingBranch: string;
+  branchSwitched: string;
+  branchCheckoutFailed: string;
+  searchBranches: string;
+  noBranchesFound: string;
+  localBranches: string;
   workingTree: string;
   ahead: string;
   behindMetric: string;
   upstream: string;
   pathLabel: string;
+  techStack: string;
+  badgeCollection: string;
+  badgeCollectionSubtitle: string;
+  stackDistribution: string;
+  javascriptProjects: string;
+  pythonProjects: string;
   laravelSpecs: string;
+  stackSpecs: string;
   framework: string;
   phpConstraint: string;
   environment: string;
   database: string;
   remotesTitle: string;
+  editRemote: string;
+  setRemoteUrl: string;
+  remoteUrlPlaceholder: string;
+  saveRemote: string;
+  addRemote: string;
   recentCommitsTitle: string;
   modificationsTitle: string;
   filterFilesPlaceholder: string;
+  resetChanges: string;
+  resetAllChanges: string;
+  resettingChanges: string;
+  resetConfirmTitle: string;
+  resetConfirmDesc: string;
+  resetIncludeUntracked: string;
+  confirmResetBtn: string;
+  discardFile: string;
+  discardFileConfirm: string;
+  resetSuccess: string;
   cleanTreeTitle: string;
   cleanTreeDesc: string;
   syncedWith: string;
@@ -88,11 +123,22 @@ export interface Translations {
   summaryStats: string;
   settingsTitle: string;
   settingsSubtitle: string;
+  generalSettings: string;
+  editorSettings: string;
+  workspaceDefaults: string;
+  aboutTitle: string;
   projectsRootDir: string;
   browseBtn: string;
   projectsDirHelp: string;
   preferredEditor: string;
   languageSetting: string;
+  notificationsSetting: string;
+  notificationsHelp: string;
+  testNotificationBtn: string;
+  testNotificationSent: string;
+  testNotificationTitle: string;
+  testNotificationBody: string;
+  notificationMacHelp: string;
   resetDefault: string;
   cancelBtn: string;
   saveSettingsBtn: string;
@@ -103,6 +149,8 @@ export interface Translations {
   rawGitOutput: string;
   diffSummary: string;
   changedFiles: string;
+  darkMode: string;
+  lightMode: string;
   inspectingGit: string;
 }
 
@@ -113,6 +161,10 @@ export const translations: Record<Language, Translations> = {
     changeFolder: 'Click to change folder',
     fetchAll: 'Fetch All',
     fetchingAllProgress: 'Fetching ({current}/{total})...',
+    fetchAllResult: 'Fetch All: {success} succeeded, {failed} failed',
+    pullAll: 'Pull All',
+    pullingAllProgress: 'Pulling ({current}/{total})...',
+    pullAllResult: 'Pull All: {success} succeeded, {failed} failed',
     refresh: 'Reload projects (⌘R)',
     settings: 'Open Settings (⌘,)',
     searchPlaceholder: 'Search projects...',
@@ -170,22 +222,53 @@ export const translations: Record<Language, Translations> = {
     openInFinder: 'Finder',
     openInEditor: 'Open in Editor',
     fetchRemote: 'Fetch Remote',
+    pullNow: 'Pull Now',
+    pulling: 'Pulling',
     gitStatusTitle: 'Git Status',
     branch: 'Branch',
+    switchBranch: 'Switch branch',
+    switchingBranch: 'Switching to {branch}...',
+    branchSwitched: 'Switched to branch "{branch}"',
+    branchCheckoutFailed: 'Checkout failed: {error}',
+    searchBranches: 'Search branches...',
+    noBranchesFound: 'No branches found',
+    localBranches: 'Branches',
     workingTree: 'Working Tree',
     ahead: 'Ahead',
     behindMetric: 'Behind',
     upstream: 'Upstream',
     pathLabel: 'Path',
+    techStack: 'Tech Stack',
+    badgeCollection: 'Badge Collection',
+    badgeCollectionSubtitle: 'Explore all tech badges, status pills, and indicators',
+    stackDistribution: 'Stack Breakdown',
+    javascriptProjects: 'JavaScript / TS',
+    pythonProjects: 'Python',
     laravelSpecs: 'Laravel Framework Details',
+    stackSpecs: 'Project Tech Specs',
     framework: 'Framework',
     phpConstraint: 'PHP Constraint',
     environment: 'Environment',
     database: 'Database',
     remotesTitle: 'Remote Repositories',
+    editRemote: 'Edit Remote URL',
+    setRemoteUrl: 'Set Remote URL',
+    remoteUrlPlaceholder: 'https://github.com/user/repo.git or git@github.com:...',
+    saveRemote: 'Save URL',
+    addRemote: 'Add Remote',
     recentCommitsTitle: 'Recent Commit History',
     modificationsTitle: 'List of Modifications',
     filterFilesPlaceholder: 'Filter changed files...',
+    resetChanges: 'Reset Changes',
+    resetAllChanges: 'Reset All Changes',
+    resettingChanges: 'Resetting...',
+    resetConfirmTitle: 'Reset All Uncommitted Changes?',
+    resetConfirmDesc: 'This will permanently discard all modifications and staged edits in this repository. This action cannot be undone.',
+    resetIncludeUntracked: 'Also delete untracked files & new folders',
+    confirmResetBtn: 'Discard All Changes',
+    discardFile: 'Discard File',
+    discardFileConfirm: 'Are you sure you want to discard changes to {file}?',
+    resetSuccess: 'Changes have been reset successfully',
     cleanTreeTitle: 'Working tree is completely clean',
     cleanTreeDesc: 'There are no uncommitted modifications, unstaged edits, or untracked files in this project.',
     syncedWith: 'Synced with',
@@ -193,11 +276,22 @@ export const translations: Record<Language, Translations> = {
     summaryStats: 'Summary Stats',
     settingsTitle: 'Settings',
     settingsSubtitle: 'Manage workspace and project folder settings',
+    generalSettings: 'General & Interface',
+    editorSettings: 'Code Editor & Tools',
+    workspaceDefaults: 'Workspace Directories',
+    aboutTitle: 'About Gity',
     projectsRootDir: 'Projects Root Directory',
     browseBtn: 'Browse...',
     projectsDirHelp: 'All subdirectories in this folder will be scanned and displayed in Gity.',
     preferredEditor: 'Preferred Code Editor',
     languageSetting: 'Application Language',
+    notificationsSetting: 'Desktop Notifications',
+    notificationsHelp: 'Receive desktop alerts when bulk operations (Fetch All / Pull All) finish',
+    testNotificationBtn: 'Send Test Notification',
+    testNotificationSent: 'Test notification sent! Check your screen top-right or notification center.',
+    testNotificationTitle: 'Gity - Notification Test',
+    testNotificationBody: 'Desktop notifications are working successfully! 🎉',
+    notificationMacHelp: 'If no banner appears, ensure notifications are allowed for Electron/Gity in macOS System Settings > Notifications.',
     resetDefault: 'Reset to default',
     cancelBtn: 'Cancel',
     saveSettingsBtn: 'Save Settings',
@@ -208,6 +302,8 @@ export const translations: Record<Language, Translations> = {
     rawGitOutput: 'Raw Git Output',
     diffSummary: 'Diff Stats',
     changedFiles: 'Changed Files',
+    darkMode: 'Dark Mode',
+    lightMode: 'Light Mode',
     inspectingGit: 'Inspecting Git working tree...',
   },
   ar: {
@@ -216,6 +312,10 @@ export const translations: Record<Language, Translations> = {
     changeFolder: 'انقر لتغيير المجلد',
     fetchAll: 'جلب الكل',
     fetchingAllProgress: 'جاري الجلب ({current}/{total})...',
+    fetchAllResult: 'جلب الكل: نجح {success}، وفشل {failed}',
+    pullAll: 'سحب الكل (Pull All)',
+    pullingAllProgress: 'جاري سحب التغييرات ({current}/{total})...',
+    pullAllResult: 'سحب الكل: نجح {success}، وفشل {failed}',
     refresh: 'تحديث المشاريع (⌘R)',
     settings: 'الإعدادات (⌘,)',
     searchPlaceholder: 'بحث في المشاريع...',
@@ -273,22 +373,53 @@ export const translations: Record<Language, Translations> = {
     openInFinder: 'فايندر',
     openInEditor: 'فتح في المحرر',
     fetchRemote: 'جلب من المستودع',
+    pullNow: 'سحب التغييرات (Pull)',
+    pulling: 'جاري السحب',
     gitStatusTitle: 'حالة جيت',
     branch: 'الفرع',
+    switchBranch: 'تبديل الفرع',
+    switchingBranch: 'جاري التبديل إلى {branch}...',
+    branchSwitched: 'تم التبديل بنجاح إلى الفرع "{branch}"',
+    branchCheckoutFailed: 'فشل التبديل: {error}',
+    searchBranches: 'بحث في الفروع...',
+    noBranchesFound: 'لم يتم العثور على فروع',
+    localBranches: 'الفروع',
     workingTree: 'شجرة العمل',
     ahead: 'متقدم',
     behindMetric: 'متأخر',
     upstream: 'المستودع البعيد',
     pathLabel: 'المسار',
+    techStack: 'التقنيات المستخدمة',
+    badgeCollection: 'مجموعة الشارات والرموز',
+    badgeCollectionSubtitle: 'استكشاف جميع شارات التقنيات وحالات المستودعات',
+    stackDistribution: 'توزيع اللغات والتقنيات',
+    javascriptProjects: 'جافاسكريبت / تايب سكريبت',
+    pythonProjects: 'بايثون',
     laravelSpecs: 'تفاصيل إطار عمل لارافيل',
+    stackSpecs: 'المواصفات التقنية للمشروع',
     framework: 'إطار العمل',
     phpConstraint: 'إصدار PHP',
     environment: 'البيئة',
     database: 'قاعدة البيانات',
-    remotesTitle: 'المستودعات البعيدة',
+    remotesTitle: 'المستودعات البعيدة (Remotes)',
+    editRemote: 'تعديل رابط المستودع',
+    setRemoteUrl: 'تعيين رابط المستودع البعيد',
+    remoteUrlPlaceholder: 'https://github.com/user/repo.git أو git@github.com:...',
+    saveRemote: 'حفظ الرابط',
+    addRemote: 'إضافة مستودع بعيد',
     recentCommitsTitle: 'سجل آخر الإيداعات',
     modificationsTitle: 'قائمة التعديلات',
     filterFilesPlaceholder: 'تصفية الملفات المعدلة...',
+    resetChanges: 'إلغاء التعديلات (Reset)',
+    resetAllChanges: 'إلغاء كافة التعديلات',
+    resettingChanges: 'جاري الإلغاء...',
+    resetConfirmTitle: 'هل تريد إلغاء كافة التعديلات؟',
+    resetConfirmDesc: 'سيؤدي هذا إلى التراجع عن جميع الملفات المعدلة نهائياً. لا يمكن التراجع عن هذا الإجراء.',
+    resetIncludeUntracked: 'حذف الملفات والمجلدات غير المتعقبة أيضاً',
+    confirmResetBtn: 'إلغاء التعديلات نهائياً',
+    discardFile: 'إلغاء تعديلات الملف',
+    discardFileConfirm: 'هل أنت متأكد من إلغاء التعديلات على {file}؟',
+    resetSuccess: 'تم إلغاء التعديلات بنجاح',
     cleanTreeTitle: 'شجرة العمل نظيفة تماماً',
     cleanTreeDesc: 'لا توجد أي تعديلات غير محفوظة أو ملفات غير متتبعة في هذا المشروع.',
     syncedWith: 'متزامن مع',
@@ -296,12 +427,23 @@ export const translations: Record<Language, Translations> = {
     summaryStats: 'ملخص الفروقات',
     settingsTitle: 'الإعدادات',
     settingsSubtitle: 'إدارة مجلد مساحة العمل والخيارات',
+    generalSettings: 'العامة والواجهة',
+    editorSettings: 'محرر الأكواد والأدوات',
+    workspaceDefaults: 'مجلدات مساحة العمل',
+    aboutTitle: 'حول تطبيق Gity',
     projectsRootDir: 'المجلد الرئيسي للمشاريع',
     browseBtn: 'استعراض...',
     projectsDirHelp: 'سيتم فحص جميع المجلدات الفرعية داخل هذا المجلد وعرضها في Gity.',
     preferredEditor: 'محرر الأكواد المفضل',
     languageSetting: 'لغة التطبيق',
-    resetDefault: 'إعادة للوضع الافتراضي',
+    notificationsSetting: 'إشعارات سطح المكتب (Notifications)',
+    notificationsHelp: 'تلقي إشعارات على سطح المكتب عند انتهاء عمليات الجلب والسحب الجماعية',
+    testNotificationBtn: 'إرسال إشعار تجريبي',
+    testNotificationSent: 'تم إرسال الإشعار التجريبي! تفقد أعلى الشاشة أو مركز الإشعارات.',
+    testNotificationTitle: 'Gity - اختبار الإشعارات',
+    testNotificationBody: 'إشعارات سطح المكتب تعمل بنجاح! 🎉',
+    notificationMacHelp: 'إذا لم يظهر الإشعار، تأكد من السماح بالإشعارات في إعدادات نظام ماك > الإشعارات.',
+    resetDefault: 'استعادة الافتراضي',
     cancelBtn: 'إلغاء',
     saveSettingsBtn: 'حفظ الإعدادات',
     saving: 'جاري الحفظ...',
@@ -311,6 +453,8 @@ export const translations: Record<Language, Translations> = {
     rawGitOutput: 'مخرجات جيت النصية',
     diffSummary: 'إحصائيات الفروقات',
     changedFiles: 'الملفات المعدلة',
+    darkMode: 'الوضع الداكن',
+    lightMode: 'الوضع الفاتح',
     inspectingGit: 'جاري فحص شجرة عمل جيت...',
   },
 };

@@ -1,19 +1,32 @@
-import { app, BrowserWindow, ipcMain, shell, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, dialog, Notification, nativeImage } from 'electron';
 import * as path from 'path';
-import { exec } from 'child_process';
+import * as fs from 'fs';
+import { exec, execFile } from 'child_process';
 import { loadSettings, saveSettings } from './settingsStore';
 import { scanDirectory, scanMultipleDirectories, getProjectFullDetails } from './projectScanner';
-import { fetchRemote, getDetailedStatus, getFileDiff } from './gitService';
+import { fetchRemote, pullProject, getDetailedStatus, getFileDiff, getProjectBranches, checkoutBranch, setRemoteUrl, resetProjectChanges } from './gitService';
 
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow() {
+  const iconPath = path.join(app.getAppPath(), 'build/icon.png');
+  const hasIcon = fs.existsSync(iconPath);
+
+  if (process.platform === 'darwin' && app.dock && hasIcon) {
+    try {
+      app.dock.setIcon(iconPath);
+    } catch {
+      // Ignored
+    }
+  }
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 820,
     minWidth: 850,
     minHeight: 550,
     title: 'Gity - Laravel & Git Workspace',
+    icon: hasIcon ? iconPath : undefined,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 18, y: 18 },
     backgroundColor: '#090d16',
@@ -67,22 +80,26 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle('projects:scan', async (_, folderPaths) => {
-    const settings = loadSettings();
-    let pathsToScan: string[] = [];
+    try {
+      const settings = loadSettings();
+      let pathsToScan: string[] = [];
 
-    if (Array.isArray(folderPaths) && folderPaths.length > 0) {
-      pathsToScan = folderPaths;
-    } else if (typeof folderPaths === 'string' && folderPaths.trim()) {
-      pathsToScan = [folderPaths.trim()];
-    } else if (settings.projectsPaths && settings.projectsPaths.length > 0) {
-      pathsToScan = settings.projectsPaths;
-    } else if (settings.projectsPath) {
-      pathsToScan = [settings.projectsPath];
-    } else {
-      pathsToScan = ['/Users/alaaelsaid/code'];
+      if (Array.isArray(folderPaths) && folderPaths.length > 0) {
+        pathsToScan = folderPaths;
+      } else if (typeof folderPaths === 'string' && folderPaths.trim()) {
+        pathsToScan = [folderPaths.trim()];
+      } else if (settings.projectsPaths && settings.projectsPaths.length > 0) {
+        pathsToScan = settings.projectsPaths;
+      } else if (settings.projectsPath) {
+        pathsToScan = [settings.projectsPath];
+      } else {
+        pathsToScan = ['/Users/alaaelsaid/code'];
+      }
+
+      return await scanMultipleDirectories(pathsToScan);
+    } catch {
+      return [];
     }
-
-    return await scanMultipleDirectories(pathsToScan);
   });
 
   ipcMain.handle('projects:open-location', async (_, projectPath) => {
@@ -95,6 +112,10 @@ function registerIpcHandlers() {
 
   ipcMain.handle('projects:fetch', async (_, projectPath) => {
     return await fetchRemote(projectPath);
+  });
+
+  ipcMain.handle('projects:pull', async (_, projectPath) => {
+    return await pullProject(projectPath);
   });
 
   ipcMain.handle('projects:status', async (_, projectPath) => {
@@ -117,6 +138,107 @@ function registerIpcHandlers() {
       });
     });
   });
+
+  ipcMain.handle('projects:get-branches', async (_, projectPath) => {
+    return await getProjectBranches(projectPath);
+  });
+
+  ipcMain.handle('projects:checkout', async (_, { projectPath, branch }) => {
+    return await checkoutBranch(projectPath, branch);
+  });
+
+  ipcMain.handle('projects:set-remote-url', async (_, { projectPath, remoteName, newUrl }) => {
+    return await setRemoteUrl(projectPath, remoteName, newUrl);
+  });
+
+  ipcMain.handle('projects:reset-changes', async (_, { projectPath, options }) => {
+    return await resetProjectChanges(projectPath, options);
+  });
+
+  ipcMain.handle('notifications:show', async (_, { title, body, sound = true }: { title: string; body: string; sound?: boolean }) => {
+    let delivered = false;
+
+    // 1. Native Electron Notification with Gity App Icon
+    try {
+      if (Notification.isSupported()) {
+        const iconPath = path.join(app.getAppPath(), 'build/icon.png');
+        const icon = fs.existsSync(iconPath) ? nativeImage.createFromPath(iconPath) : undefined;
+        const notification = new Notification({
+          title: title || 'Gity',
+          body: body || '',
+          icon,
+          silent: true, // We handle sound explicitly via afplay so it never fails or clips
+        });
+
+        notification.on('click', () => {
+          if (mainWindow) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.focus();
+          }
+        });
+
+        notification.show();
+        delivered = true;
+      }
+    } catch (err) {
+      console.warn('[Notifications] Electron Notification error:', err);
+    }
+
+    // 2. Guaranteed macOS Native Notification with Gity App Icon
+    if (process.platform === 'darwin') {
+      try {
+        if (app.dock) {
+          app.dock.bounce('informational');
+        }
+        if (sound) {
+          exec('afplay /System/Library/Sounds/Ping.aiff', () => {});
+        }
+
+        const notifTitle = title || 'Gity';
+        const notifBody = body || '';
+        const iconPath = path.join(app.getAppPath(), 'build/icon.png');
+        const notifierBinary = path.join(app.getAppPath(), 'build/GityNotifier.app/Contents/MacOS/terminal-notifier');
+
+        if (fs.existsSync(notifierBinary)) {
+          const args = [
+            '-title', notifTitle,
+            '-message', notifBody,
+            '-timeout', '5',
+          ];
+          if (sound) {
+            args.push('-sound', 'default');
+          }
+
+          execFile(notifierBinary, args, (err) => {
+            if (err) {
+              console.warn('[Notifications] GityNotifier fallback to osascript:', err);
+              const cleanTitle = notifTitle.replace(/["\\]/g, '\\$&');
+              const cleanBody = notifBody.replace(/["\\]/g, '\\$&');
+              const soundParam = sound ? ' sound name "Ping"' : '';
+              exec(`osascript -e 'display notification "${cleanBody}" with title "${cleanTitle}"${soundParam}'`);
+            }
+          });
+        } else {
+          const cleanTitle = notifTitle.replace(/["\\]/g, '\\$&');
+          const cleanBody = notifBody.replace(/["\\]/g, '\\$&');
+          const soundParam = sound ? ' sound name "Ping"' : '';
+          exec(`osascript -e 'display notification "${cleanBody}" with title "${cleanTitle}"${soundParam}'`, (err) => {
+            if (err) console.warn('[Notifications] osascript warning:', err);
+          });
+        }
+        delivered = true;
+      } catch (e) {
+        console.warn('[Notifications] macOS dispatch error:', e);
+      }
+    }
+
+    return delivered;
+  });
+}
+
+app.setName('Gity');
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.gity.app');
 }
 
 app.whenReady().then(() => {

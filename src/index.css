@@ -3,39 +3,116 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-mac-bg: var(--mac-bg);
-  --color-mac-sidebar: var(--mac-sidebar);
-  --color-mac-card: var(--mac-card);
-  --color-mac-cardHover: var(--mac-card-hover);
-  --color-mac-border: var(--mac-border);
-  --color-mac-subtext: var(--mac-subtext);
-  --color-mac-accent: #6366f1;
-  --color-mac-accentHover: #4f46e5;
-  --color-mac-emerald: #10b981;
-  --color-mac-rose: #f43f5e;
-  --color-mac-amber: #f59e0b;
-  --color-mac-cyan: #0ea5e9;
-  --color-mac-purple: #8b5cf6;
+  --color-studio-canvas: #0a0d14;
+  --color-studio-sidebar: #0e131f;
+  --color-studio-surface: #131929;
+  --color-studio-surfaceHover: #1a2238;
+  --color-studio-border: rgba(255, 255, 255, 0.08);
+  --color-studio-borderHover: rgba(255, 255, 255, 0.18);
+  --color-studio-laravel: #ff2d20;
+  --color-studio-cyan: #06b6d4;
+  --color-studio-indigo: #6366f1;
+  --color-studio-emerald: #10b981;
+  --color-studio-amber: #f59e0b;
+  --color-studio-purple: #8b5cf6;
 }
 
 :root {
-  --mac-bg: #090d16;
-  --mac-sidebar: #0f172a;
-  --mac-card: #111827;
-  --mac-card-hover: #172138;
-  --mac-border: rgba(255, 255, 255, 0.08);
-  --mac-subtext: #94a3b8;
+  /* Dark Mode Default (Gity Obsidian Studio) */
+  --studio-canvas: #0a0d14;
+  --studio-sidebar: #0e131f;
+  --studio-surface: #131929;
+  --studio-surface-hover: #192136;
+  --studio-surface-elevated: #182035;
+  --studio-border: rgba(255, 255, 255, 0.08);
+  --studio-border-hover: rgba(255, 255, 255, 0.16);
+  --studio-border-active: rgba(6, 182, 212, 0.5);
+  --studio-text-primary: #f8fafc;
+  --studio-text-secondary: #94a3b8;
+  --studio-text-muted: #64748b;
+  
+  --studio-laravel: #ff2d20;
+  --studio-laravel-glow: rgba(255, 45, 32, 0.25);
+  --studio-cyan: #06b6d4;
+  --studio-cyan-glow: rgba(6, 182, 212, 0.25);
+  --studio-emerald: #10b981;
+  --studio-emerald-glow: rgba(16, 185, 129, 0.25);
+  --studio-amber: #f59e0b;
+  --studio-amber-glow: rgba(245, 158, 11, 0.25);
+  --studio-indigo: #6366f1;
+  --studio-indigo-glow: rgba(99, 102, 241, 0.25);
+
+  /* Legacy Bridge Mappings */
+  --toy-bg: var(--studio-canvas);
+  --toy-sidebar: var(--studio-sidebar);
+  --toy-surface: var(--studio-surface);
+  --toy-surface-hover: var(--studio-surface-hover);
+  --toy-border: var(--studio-border);
+  --toy-border-hover: var(--studio-border-hover);
+  --toy-border-focus: var(--studio-cyan);
+  --toy-btn-bg: #141b2d;
+  --toy-btn-hover: #1c263e;
+  --toy-btn-shadow: transparent;
+  --toy-card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4), 0 2px 6px -1px rgba(0, 0, 0, 0.3);
+  --toy-card-shadow-hover: 0 10px 25px -3px rgba(0, 0, 0, 0.5), 0 4px 10px -2px rgba(6, 182, 212, 0.15);
+  --toy-inset-bg: #090c14;
+  --toy-inset-border: rgba(255, 255, 255, 0.06);
+  --toy-inset-text: #cbd5e1;
+  --toy-text-primary: var(--studio-text-primary);
+  --toy-grid-dot: rgba(255, 255, 255, 0.03);
+  --toy-coral: #ff2d20;
+  --toy-cyan: #06b6d4;
+  --toy-yellow: #f59e0b;
+  --toy-mint: #10b981;
+  --toy-purple: #8b5cf6;
+}
+
+html.light, .light {
+  /* Light Mode (Crisp Alabaster Studio) */
+  --studio-canvas: #f8fafc;
+  --studio-sidebar: #ffffff;
+  --studio-surface: #ffffff;
+  --studio-surface-hover: #f1f5f9;
+  --studio-surface-elevated: #ffffff;
+  --studio-border: #e2e8f0;
+  --studio-border-hover: #cbd5e1;
+  --studio-border-active: #0ea5e9;
+  --studio-text-primary: #0f172a;
+  --studio-text-secondary: #475569;
+  --studio-text-muted: #94a3b8;
+
+  /* Legacy Bridge Mappings in Light */
+  --toy-bg: var(--studio-canvas);
+  --toy-sidebar: var(--studio-sidebar);
+  --toy-surface: var(--studio-surface);
+  --toy-surface-hover: var(--studio-surface-hover);
+  --toy-border: var(--studio-border);
+  --toy-border-hover: var(--studio-border-hover);
+  --toy-border-focus: var(--studio-border-active);
+  --toy-btn-bg: #ffffff;
+  --toy-btn-hover: #f8fafc;
+  --toy-btn-shadow: transparent;
+  --toy-card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  --toy-card-shadow-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  --toy-inset-bg: #f1f5f9;
+  --toy-inset-border: #e2e8f0;
+  --toy-inset-text: #1e293b;
+  --toy-text-primary: var(--studio-text-primary);
+  --toy-grid-dot: rgba(0, 0, 0, 0.03);
 }
 
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: var(--mac-bg);
-  color: #f8fafc;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--studio-canvas);
+  background-image: radial-gradient(var(--toy-grid-dot) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--studio-text-primary);
   user-select: none;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 code, kbd, samp, pre, .font-mono {
@@ -46,19 +123,215 @@ code, kbd, samp, pre, .font-mono {
   font-family: 'Cairo', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Accessible focus ring for keyboard navigation */
-:focus-visible {
-  outline: 2px solid #6366f1;
-  outline-offset: 2px;
+/* =========================================================
+   MODERN STUDIO DESIGN SYSTEM UTILITIES
+   ========================================================= */
+
+/* High-craftsmanship Studio Buttons */
+.studio-btn, .toy-btn, .deck-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--studio-surface-hover);
+  border: 1px solid var(--studio-border);
+  border-radius: 10px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--studio-text-primary);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  user-select: none;
 }
 
-/* Reduced motion preference */
+.studio-btn:hover, .toy-btn:hover, .deck-btn:hover {
+  background-color: var(--studio-surface-elevated);
+  border-color: var(--studio-border-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.studio-btn:active, .toy-btn:active, .deck-btn:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+.studio-btn:disabled, .toy-btn:disabled, .deck-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Primary Cyan / Electric Accent Button */
+.studio-btn-primary, .toy-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  user-select: none;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.3);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.studio-btn-primary:hover, .toy-btn-primary:hover {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.4);
+}
+
+.studio-btn-primary:active, .toy-btn-primary:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 4px rgba(2, 132, 199, 0.2);
+}
+
+/* Laravel Signature Crimson Button */
+.studio-btn-laravel, .toy-btn-coral {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  user-select: none;
+  background: linear-gradient(135deg, #ff2d20 0%, #e02418 100%);
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  box-shadow: 0 2px 10px rgba(255, 45, 32, 0.35);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.studio-btn-laravel:hover, .toy-btn-coral:hover {
+  background: linear-gradient(135deg, #ff4135 0%, #ff2d20 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(255, 45, 32, 0.45);
+}
+
+.studio-btn-laravel:active, .toy-btn-coral:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 4px rgba(255, 45, 32, 0.2);
+}
+
+/* Emerald Mint Button */
+.studio-btn-emerald, .toy-btn-mint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  user-select: none;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.studio-btn-emerald:hover, .toy-btn-mint:hover {
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+}
+
+/* Elevated Studio Cards */
+.studio-card, .toy-card, .deck-panel {
+  background-color: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: 14px;
+  box-shadow: var(--toy-card-shadow);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.studio-card:hover, .toy-card:hover {
+  border-color: var(--studio-border-hover);
+  background-color: var(--studio-surface-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--toy-card-shadow-hover);
+}
+
+/* Subtle Inset Wells */
+.studio-inset, .toy-inset {
+  background-color: var(--toy-inset-bg);
+  border: 1px solid var(--studio-border);
+  border-radius: 10px;
+  color: var(--toy-inset-text);
+}
+
+/* Micro Status Chips / Pills */
+.studio-pill, .toy-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 6px;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.725rem;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  line-height: 1.25;
+}
+
+.studio-pill:hover, .toy-pill:hover {
+  filter: brightness(1.1);
+}
+
+/* Refined Luminous Status Indicators */
+.led-green, .toy-led-green {
+  background-color: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.7), 0 0 16px rgba(16, 185, 129, 0.3);
+}
+
+.led-amber, .toy-led-amber {
+  background-color: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.7), 0 0 16px rgba(245, 158, 11, 0.3);
+}
+
+.led-cyan, .toy-led-cyan {
+  background-color: #06b6d4;
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.7), 0 0 16px rgba(6, 182, 212, 0.3);
+}
+
+.led-coral, .toy-led-coral {
+  background-color: #ff2d20;
+  box-shadow: 0 0 8px rgba(255, 45, 32, 0.7), 0 0 16px rgba(255, 45, 32, 0.3);
+}
+
+.led-purple, .toy-led-purple {
+  background-color: #8b5cf6;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.7), 0 0 16px rgba(139, 92, 246, 0.3);
+}
+
+/* Accessible Focus Ring */
+:focus-visible {
+  outline: 2px solid var(--studio-cyan);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Reduced Motion Preference */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+    transform: none !important;
   }
 }
 
@@ -70,7 +343,7 @@ code, kbd, samp, pre, .font-mono {
   -webkit-app-region: no-drag;
 }
 
-/* Custom Scrollbar */
+/* Sleek Minimal macOS Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -81,10 +354,19 @@ code, kbd, samp, pre, .font-mono {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
+}
+
+/* Light Mode Overrides for Crisp Rendering */
+.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
 }

@@ -36,6 +36,8 @@ export interface DetailedGitStatus {
   branchInfo: string;
 }
 
+export type ProjectType = 'laravel' | 'javascript' | 'typescript' | 'python' | 'php' | 'go' | 'rust' | 'java' | 'ruby' | 'other';
+
 export interface ProjectItem extends GitSummary {
   id: string;
   name: string;
@@ -45,6 +47,23 @@ export interface ProjectItem extends GitSummary {
   isLaravel: boolean;
   laravelVersion: string | null;
   phpVersion: string | null;
+  branches?: string[];
+  projectType?: ProjectType;
+  projectTypeLabel?: string;
+  framework?: string | null;
+  frameworkVersion?: string | null;
+  language?: string;
+}
+
+export interface NotificationConfig {
+  enabled: boolean;
+  sound: boolean;
+  fetchAlerts: boolean;
+  pullAlerts: boolean;
+  modifiedAlerts: boolean;
+  modifiedThreshold: number;
+  behindAlerts: boolean;
+  behindThreshold: number;
 }
 
 export interface AppSettings {
@@ -52,6 +71,8 @@ export interface AppSettings {
   projectsPath?: string; // backwards compatibility
   editor: string;
   theme: 'dark' | 'light';
+  notifications?: boolean;
+  notificationSettings?: NotificationConfig;
 }
 
 export interface FetchResult {
@@ -61,11 +82,32 @@ export interface FetchResult {
   summary: GitSummary;
 }
 
+export interface PullResult {
+  success: boolean;
+  message: string;
+  duration: string;
+  summary: GitSummary;
+}
+
+export interface RemoteResult {
+  success: boolean;
+  message: string;
+  remotes?: { name: string; url: string }[];
+}
+
+export interface CheckoutResult {
+  success: boolean;
+  branch: string;
+  message: string;
+  summary?: GitSummary;
+}
+
 export interface ProjectDetails {
   project: ProjectItem;
   status: DetailedGitStatus;
   recentCommits: CommitInfo[];
   remotes: { name: string; url: string }[];
+  branches?: string[];
   envInfo?: {
     appName?: string;
     appEnv?: string;
@@ -76,6 +118,25 @@ export interface ProjectDetails {
     dependenciesCount?: number;
     phpVersion?: string;
   };
+  packageInfo?: {
+    description?: string;
+    dependenciesCount?: number;
+    framework?: string;
+    version?: string;
+  };
+  projectType?: ProjectType;
+  projectTypeLabel?: string;
+  framework?: string | null;
+  frameworkVersion?: string | null;
+  language?: string;
+}
+
+export type GitStatusDetails = DetailedGitStatus;
+
+export interface ResetResult {
+  success: boolean;
+  message: string;
+  summary?: GitSummary;
 }
 
 export interface GityAPI {
@@ -85,10 +146,17 @@ export interface GityAPI {
   scanProjects: (folderPaths?: string | string[]) => Promise<ProjectItem[]>;
   openLocation: (projectPath: string) => Promise<boolean>;
   fetchRemote: (projectPath: string) => Promise<FetchResult>;
+  pullProject: (projectPath: string) => Promise<PullResult>;
   getStatus: (projectPath: string) => Promise<DetailedGitStatus>;
+  getGitStatus?: (projectPath: string) => Promise<DetailedGitStatus>;
   getProjectDetails: (projectPath: string) => Promise<ProjectDetails>;
   getFileDiff: (projectPath: string, filePath: string) => Promise<string>;
   openEditor: (projectPath: string, editor?: string) => Promise<boolean>;
+  getBranches: (projectPath: string) => Promise<string[]>;
+  checkoutBranch: (projectPath: string, branch: string) => Promise<CheckoutResult>;
+  setRemoteUrl: (projectPath: string, remoteName: string, newUrl: string) => Promise<RemoteResult>;
+  resetChanges: (projectPath: string, options?: { filePath?: string; includeUntracked?: boolean }) => Promise<ResetResult>;
+  showNotification?: (title: string, body: string, sound?: boolean) => Promise<boolean>;
 }
 
 declare global {

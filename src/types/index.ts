@@ -42,6 +42,25 @@ export interface ProjectItem {
   behind: number;
   lastCommit: CommitInfo | null;
   error?: string;
+  branches?: string[];
+  projectType?: ProjectType;
+  projectTypeLabel?: string;
+  framework?: string | null;
+  frameworkVersion?: string | null;
+  language?: string;
+}
+
+export type ProjectType = 'laravel' | 'javascript' | 'typescript' | 'python' | 'php' | 'go' | 'rust' | 'java' | 'ruby' | 'other';
+
+export interface NotificationConfig {
+  enabled: boolean;
+  sound: boolean;
+  fetchAlerts: boolean;
+  pullAlerts: boolean;
+  modifiedAlerts: boolean;
+  modifiedThreshold: number;
+  behindAlerts: boolean;
+  behindThreshold: number;
 }
 
 export interface AppSettings {
@@ -49,6 +68,8 @@ export interface AppSettings {
   projectsPath?: string;
   editor: string;
   theme: 'dark' | 'light';
+  notifications?: boolean;
+  notificationSettings?: NotificationConfig;
 }
 
 export interface FetchResult {
@@ -66,7 +87,43 @@ export interface FetchResult {
   };
 }
 
-export type FilterCategory = 'all' | 'laravel' | 'modified' | 'behind' | 'clean';
+export interface PullResult {
+  success: boolean;
+  message: string;
+  duration: string;
+  summary: {
+    isGit: boolean;
+    branch: string;
+    clean: boolean;
+    modifiedCount: number;
+    ahead: number;
+    behind: number;
+    lastCommit: CommitInfo | null;
+  };
+}
+
+export interface RemoteResult {
+  success: boolean;
+  message: string;
+  remotes?: { name: string; url: string }[];
+}
+
+export interface CheckoutResult {
+  success: boolean;
+  branch: string;
+  message: string;
+  summary?: {
+    isGit: boolean;
+    branch: string;
+    clean: boolean;
+    modifiedCount: number;
+    ahead: number;
+    behind: number;
+    lastCommit: CommitInfo | null;
+  };
+}
+
+export type FilterCategory = 'all' | 'laravel' | 'javascript' | 'python' | 'modified' | 'behind' | 'clean' | string;
 export type ViewMode = 'grid' | 'list';
 
 export interface ProjectDetails {
@@ -74,6 +131,12 @@ export interface ProjectDetails {
   status: DetailedGitStatus;
   recentCommits: CommitInfo[];
   remotes: { name: string; url: string }[];
+  branches?: string[];
+  projectType?: ProjectType;
+  projectTypeLabel?: string;
+  framework?: string | null;
+  frameworkVersion?: string | null;
+  language?: string;
   envInfo?: {
     appName?: string;
     appEnv?: string;
@@ -84,4 +147,46 @@ export interface ProjectDetails {
     dependenciesCount?: number;
     phpVersion?: string;
   };
+  packageInfo?: {
+    description?: string;
+    dependenciesCount?: number;
+    framework?: string;
+    version?: string;
+  };
+}
+
+export type GitStatusDetails = DetailedGitStatus;
+
+export interface ResetResult {
+  success: boolean;
+  message: string;
+  summary?: GitSummary;
+}
+
+export interface GityAPI {
+  getSettings: () => Promise<AppSettings>;
+  saveSettings: (settings: Partial<AppSettings>) => Promise<AppSettings>;
+  selectFolder: (currentPath?: string) => Promise<string | null>;
+  scanProjects: (folderPaths?: string | string[]) => Promise<ProjectItem[]>;
+  openLocation: (projectPath: string) => Promise<boolean>;
+  fetchRemote: (projectPath: string) => Promise<FetchResult>;
+  pullProject: (projectPath: string) => Promise<PullResult>;
+  getStatus: (projectPath: string) => Promise<DetailedGitStatus>;
+  getGitStatus?: (projectPath: string) => Promise<DetailedGitStatus>;
+  getProjectDetails: (projectPath: string) => Promise<ProjectDetails>;
+  getFileDiff: (projectPath: string, filePath: string) => Promise<string>;
+  openEditor?: (projectPath: string, editor?: string) => Promise<boolean>;
+  openInEditor?: (projectPath: string, editor?: string) => Promise<boolean>;
+  getBranches: (projectPath: string) => Promise<string[]>;
+  checkoutBranch: (projectPath: string, branch: string) => Promise<CheckoutResult>;
+  setRemoteUrl: (projectPath: string, remoteName: string, newUrl: string) => Promise<RemoteResult>;
+  resetChanges: (projectPath: string, options?: { filePath?: string; includeUntracked?: boolean }) => Promise<ResetResult>;
+  showNotification?: (title: string, body: string, sound?: boolean) => Promise<boolean>;
+}
+
+declare global {
+  interface Window {
+    gityAPI: GityAPI;
+    api?: GityAPI;
+  }
 }
