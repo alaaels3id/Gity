@@ -22,6 +22,11 @@
   "build": {
     "appId": "com.gity.app",
     "productName": "Gity",
+    "publish": {
+      "provider": "github",
+      "owner": "alaaels3id",
+      "repo": "Gity"
+    },
     "copyright": "Copyright © 2026 Gity",
     "directories": {
       "output": "release",
