@@ -3,9 +3,28 @@ import * as path from 'path';
 import { app } from 'electron';
 import { AppSettings } from './types';
 
+export function getDefaultProjectsPath(): string {
+  try {
+    const home = app.getPath('home');
+    const candidates = [
+      path.join(home, 'code'),
+      path.join(home, 'Projects'),
+      path.join(home, 'Documents', 'Projects'),
+      path.join(home, 'Documents'),
+      home,
+    ];
+    for (const c of candidates) {
+      if (fs.existsSync(c)) return c;
+    }
+    return home;
+  } catch {
+    return process.platform === 'win32' ? 'C:\\' : '/';
+  }
+}
+
 export const DEFAULT_SETTINGS: AppSettings = {
-  projectsPaths: ['/Users/alaaelsaid/code'],
-  projectsPath: '/Users/alaaelsaid/code',
+  projectsPaths: [],
+  projectsPath: '',
   editor: 'code',
   theme: 'dark',
 };
@@ -16,6 +35,7 @@ function getConfigFile(): string {
 }
 
 export function loadSettings(): AppSettings {
+  const defaultDir = getDefaultProjectsPath();
   try {
     const configFile = getConfigFile();
     if (fs.existsSync(configFile)) {
@@ -30,8 +50,13 @@ export function loadSettings(): AppSettings {
         paths = [parsed.projectsPath.trim()];
       }
 
+      // If on Windows and setting was the default hardcoded mac path, migrate it
+      if (process.platform === 'win32') {
+        paths = paths.map(p => (p === '/Users/alaaelsaid/code' ? defaultDir : p));
+      }
+
       if (paths.length === 0) {
-        paths = [...DEFAULT_SETTINGS.projectsPaths];
+        paths = [defaultDir];
       }
 
       // Unique paths
@@ -41,13 +66,17 @@ export function loadSettings(): AppSettings {
         ...DEFAULT_SETTINGS,
         ...parsed,
         projectsPaths: paths,
-        projectsPath: paths[0],
+        projectsPath: paths[0] || defaultDir,
       };
     }
   } catch (err) {
     console.error('Failed to load settings, using defaults:', err);
   }
-  return { ...DEFAULT_SETTINGS };
+  return {
+    ...DEFAULT_SETTINGS,
+    projectsPaths: [defaultDir],
+    projectsPath: defaultDir,
+  };
 }
 
 export function saveSettings(newSettings: Partial<AppSettings>): AppSettings {
@@ -63,7 +92,7 @@ export function saveSettings(newSettings: Partial<AppSettings>): AppSettings {
     }
 
     if (updatedPaths.length === 0) {
-      updatedPaths = [...DEFAULT_SETTINGS.projectsPaths];
+      updatedPaths = [getDefaultProjectsPath()];
     }
 
     const merged: AppSettings = {

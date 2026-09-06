@@ -2,17 +2,22 @@ import { app, BrowserWindow, ipcMain, shell, dialog, Notification, nativeImage }
 import * as path from 'path';
 import * as fs from 'fs';
 import { exec, execFile } from 'child_process';
-import { loadSettings, saveSettings } from './settingsStore';
+import { loadSettings, saveSettings, getDefaultProjectsPath } from './settingsStore';
 import { scanDirectory, scanMultipleDirectories, getProjectFullDetails } from './projectScanner';
 import { fetchRemote, pullProject, getDetailedStatus, getFileDiff, getProjectBranches, checkoutBranch, setRemoteUrl, resetProjectChanges } from './gitService';
 
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow() {
-  const iconPath = path.join(app.getAppPath(), 'build/icon.png');
-  const hasIcon = fs.existsSync(iconPath);
+  const iconCandidates = [
+    path.join(process.resourcesPath, 'icon.png'),
+    path.join(app.getAppPath(), 'build/icon.png'),
+    path.join(app.getAppPath(), 'build/icon.ico'),
+  ];
+  const iconPath = iconCandidates.find(p => fs.existsSync(p));
+  const hasIcon = Boolean(iconPath);
 
-  if (process.platform === 'darwin' && app.dock && hasIcon) {
+  if (process.platform === 'darwin' && app.dock && iconPath) {
     try {
       app.dock.setIcon(iconPath);
     } catch {
@@ -26,9 +31,17 @@ function createWindow() {
     minWidth: 850,
     minHeight: 550,
     title: 'Gity - Laravel & Git Workspace',
-    icon: hasIcon ? iconPath : undefined,
-    titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 18, y: 18 },
+    icon: iconPath,
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
+    ...(process.platform === 'darwin'
+      ? { trafficLightPosition: { x: 18, y: 18 } }
+      : {
+          titleBarOverlay: {
+            color: '#090d16',
+            symbolColor: '#94a3b8',
+            height: 38,
+          },
+        }),
     backgroundColor: '#090d16',
     show: false,
     webPreferences: {
@@ -43,12 +56,23 @@ function createWindow() {
     mainWindow?.show();
   });
 
+  // Safety fallback: ensure window is always displayed even if ready-to-show is delayed
+  setTimeout(() => {
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+      mainWindow.show();
+    }
+  }, 1500);
+
   const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173');
+    mainWindow.loadURL('http://localhost:5173').catch(() => {
+      mainWindow?.loadFile(path.join(__dirname, '../dist/index.html'));
+    });
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html')).catch((err) => {
+      console.error('Failed to load index.html:', err);
+    });
   }
 
   mainWindow.on('closed', () => {
@@ -67,9 +91,10 @@ function registerIpcHandlers() {
 
   ipcMain.handle('dialog:select-folder', async (_, currentPath) => {
     if (!mainWindow) return null;
+    const defaultDir = currentPath || getDefaultProjectsPath();
     const result = await dialog.showOpenDialog(mainWindow, {
       title: 'Select Projects Directory',
-      defaultPath: currentPath || '/Users/alaaelsaid/code',
+      defaultPath: defaultDir,
       properties: ['openDirectory', 'createDirectory'],
     });
 
@@ -93,7 +118,7 @@ function registerIpcHandlers() {
       } else if (settings.projectsPath) {
         pathsToScan = [settings.projectsPath];
       } else {
-        pathsToScan = ['/Users/alaaelsaid/code'];
+        pathsToScan = [getDefaultProjectsPath()];
       }
 
       return await scanMultipleDirectories(pathsToScan);
@@ -131,8 +156,19 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle('projects:open-editor', async (_, { projectPath, editor = 'code' }) => {
+    let editorCmd = editor;
+    if (process.platform === 'win32' && editor === 'pstorm') {
+      editorCmd = 'phpstorm64';
+    }
     return new Promise((resolve, reject) => {
-      exec(`${editor} "${projectPath}"`, (err) => {
+      exec(`${editorCmd} "${projectPath}"`, (err) => {
+        if (err && editorCmd !== editor) {
+          exec(`${editor} "${projectPath}"`, (fallbackErr) => {
+            if (fallbackErr) return reject(err);
+            resolve(true);
+          });
+          return;
+        }
         if (err) return reject(err);
         resolve(true);
       });
@@ -228,8 +264,13 @@ function registerIpcHandlers() {
       // Windows / Linux native notifications
       try {
         if (Notification.isSupported()) {
-          const iconPath = path.join(app.getAppPath(), 'build/icon.png');
-          const icon = fs.existsSync(iconPath) ? nativeImage.createFromPath(iconPath) : undefined;
+          const iconCandidates = [
+            path.join(process.resourcesPath, 'icon.png'),
+            path.join(app.getAppPath(), 'build/icon.png'),
+            path.join(app.getAppPath(), 'build/icon.ico'),
+          ];
+          const iconPath = iconCandidates.find(p => fs.existsSync(p));
+          const icon = iconPath ? nativeImage.createFromPath(iconPath) : undefined;
           const notification = new Notification({
             title: notifTitle,
             body: notifBody,

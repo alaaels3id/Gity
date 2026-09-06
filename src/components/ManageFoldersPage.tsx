@@ -196,7 +196,7 @@ export const ManageFoldersPage: React.FC<ManageFoldersPageProps> = ({
         {/* Folders Cards List */}
         <div className="space-y-3">
           {folders.map((folderPath, idx) => {
-            const folderName = folderPath.split('/').filter(Boolean).pop() || folderPath;
+            const folderName = folderPath.split(/[\\/]/).filter(Boolean).pop() || folderPath;
             const stats = getFolderStats(folderPath);
 
             return (

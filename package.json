@@ -1,17 +1,18 @@
 {
   "name": "gity",
-  "version": "1.0.0",
-  "description": "macOS Desktop Manager for Laravel Projects and Git Repositories",
+  "version": "1.2.0",
+  "description": "Modern Desktop Manager for Laravel Projects and Git Repositories",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev:renderer": "vite",
     "dev:electron": "tsc -p tsconfig.electron.json -w",
-    "dev": "npm run build:electron && concurrently -k -n \"VITE,ELECTRON\" -c \"cyan,magenta\" \"vite\" \"wait-on http://localhost:5173 && electron . --host\"",
+    "dev": "npm run build:electron && concurrently -k -n \"VITE,ELECTRON\" -c \"cyan,magenta\" \"vite\" \"wait-on tcp:5173 && electron .\"",
     "build:electron": "tsc -p tsconfig.electron.json",
     "build:renderer": "vite build",
     "build": "npm run build:renderer && npm run build:electron",
-    "start": "NODE_ENV=production electron dist-electron/main.js",
+    "start": "electron dist-electron/main.js",
     "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
     "dist:mac": "npm run build && electron-builder --mac",
     "dist:arm64": "npm run build && electron-builder --mac --arm64",
     "dist:x64": "npm run build && electron-builder --mac --x64",
@@ -26,7 +27,7 @@
       "output": "release",
       "buildResources": "build"
     },
-    "icon": "build/icon.icns",
+    "icon": "build/icon.png",
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
@@ -35,17 +36,40 @@
     ],
     "extraResources": [
       {
-        "from": "build/GityNotifier.app",
-        "to": "GityNotifier.app"
-      },
-      {
         "from": "build/icon.png",
         "to": "icon.png"
       }
     ],
+    "win": {
+      "icon": "build/icon.png",
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Gity",
+      "uninstallDisplayName": "Gity",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
     "mac": {
       "icon": "build/icon.icns",
       "category": "public.app-category.developer-tools",
+      "extraResources": [
+        {
+          "from": "build/GityNotifier.app",
+          "to": "GityNotifier.app"
+        }
+      ],
       "target": [
         "dmg",
         "zip"

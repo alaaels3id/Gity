@@ -4,18 +4,30 @@ import * as fs from 'fs';
 import { GitSummary, DetailedGitStatus, FetchResult, PullResult, RemoteResult, ChangedFile, CheckoutResult, ResetResult } from './types';
 
 function getGitEnv(): NodeJS.ProcessEnv {
+  const isWin = process.platform === 'win32';
+  const delimiter = path.delimiter;
   const currentPath = process.env.PATH || '';
-  const defaultPaths = [
-    '/opt/homebrew/bin',
-    '/usr/local/bin',
-    '/usr/bin',
-    '/bin',
-    '/usr/sbin',
-    '/sbin',
-  ];
-  const combinedPath = Array.from(new Set([...currentPath.split(':'), ...defaultPaths]))
+
+  const defaultPaths = isWin
+    ? [
+        'C:\\Program Files\\Git\\cmd',
+        'C:\\Program Files\\Git\\bin',
+        'C:\\Program Files (x86)\\Git\\cmd',
+        path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Git', 'cmd'),
+        path.join(process.env.ProgramW6432 || 'C:\\Program Files', 'Git', 'cmd'),
+      ]
+    : [
+        '/opt/homebrew/bin',
+        '/usr/local/bin',
+        '/usr/bin',
+        '/bin',
+        '/usr/sbin',
+        '/sbin',
+      ];
+
+  const combinedPath = Array.from(new Set([...currentPath.split(delimiter), ...defaultPaths]))
     .filter(Boolean)
-    .join(':');
+    .join(delimiter);
 
   return {
     ...process.env,
@@ -321,10 +333,11 @@ export async function getDetailedStatus(projectPath: string): Promise<DetailedGi
 export async function getFileDiff(projectPath: string, filePath: string): Promise<string> {
   if (!isGitRepo(projectPath)) return '';
   try {
-    const diff = await runGitCommand(`git diff -- "${filePath}"`, projectPath);
+    const normalizedPath = (filePath || '').replace(/\\/g, '/');
+    const diff = await runGitCommand(`git diff -- "${normalizedPath}"`, projectPath);
     if (!diff) {
       // Check cached/staged diff
-      return await runGitCommand(`git diff --cached -- "${filePath}"`, projectPath);
+      return await runGitCommand(`git diff --cached -- "${normalizedPath}"`, projectPath);
     }
     return diff;
   } catch {
@@ -511,7 +524,7 @@ export async function resetProjectChanges(
 
   try {
     if (filePath) {
-      const cleanPath = filePath.trim();
+      const cleanPath = filePath.trim().replace(/\\/g, '/');
       if (!cleanPath || cleanPath.startsWith('-') || /[\r\n]/.test(cleanPath)) {
         return { success: false, message: 'Invalid file path' };
       }

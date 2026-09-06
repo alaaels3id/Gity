@@ -52,7 +52,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     if (currentSettings.projectsPath) {
       return [currentSettings.projectsPath];
     }
-    return ['/Users/alaaelsaid/code'];
+    return [];
   });
 
   const [editor, setEditor] = useState(currentSettings.editor || 'code');
@@ -127,7 +127,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   };
 
   const handleResetDefaults = () => {
-    setFolders(['/Users/alaaelsaid/code']);
+    setFolders(currentSettings.projectsPaths?.length ? [...currentSettings.projectsPaths] : []);
     setEditor('code');
     setSelectedLanguage('en');
     setTheme('dark');
@@ -700,12 +700,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                { key: '⌘R', desc: 'Reload projects' },
-                { key: '⌘,', desc: 'Open settings' },
-                { key: '⌘F', desc: 'Search projects' },
-                { key: 'ESC', desc: 'Back to overview' },
-              ].map((item, idx) => (
+              {(() => {
+                const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
+                const cmdKey = isMac ? '⌘' : 'Ctrl+';
+                return [
+                  { key: `${cmdKey}R`, desc: 'Reload projects' },
+                  { key: `${cmdKey},`, desc: 'Open settings' },
+                  { key: `${cmdKey}F`, desc: 'Search projects' },
+                  { key: 'ESC', desc: 'Back to overview' },
+                ];
+              })().map((item, idx) => (
                 <div key={idx} className="p-3 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] flex items-center justify-between">
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{item.desc}</span>
                   <kbd className="text-xs font-mono font-bold text-sky-600 dark:text-sky-400 bg-white dark:bg-white/[0.06] px-2 py-0.5 rounded border border-slate-200 dark:border-white/[0.08]">

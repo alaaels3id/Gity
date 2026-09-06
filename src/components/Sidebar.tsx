@@ -305,7 +305,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               {/* Each folder */}
               {folders.map((folderPath) => {
-                const folderName = folderPath.split('/').filter(Boolean).pop() || folderPath;
+                const folderName = folderPath.split(/[\\/]/).filter(Boolean).pop() || folderPath;
                 const isSelected = selectedFolder === folderPath;
                 const count = folderCounts[folderPath] || 0;
 

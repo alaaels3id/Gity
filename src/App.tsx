@@ -19,8 +19,8 @@ export const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [settings, setSettings] = useState<AppSettings>({
-    projectsPaths: ['/Users/alaaelsaid/code'],
-    projectsPath: '/Users/alaaelsaid/code',
+    projectsPaths: [],
+    projectsPath: '',
     editor: 'code',
     theme: 'dark',
   });
@@ -145,11 +145,11 @@ export const App: React.FC = () => {
   const loadSettingsAndProjects = async () => {
     try {
       const api = window.gityAPI || window.api;
-      let pathsToScan: string[] = settings.projectsPaths || ['/Users/alaaelsaid/code'];
+      let pathsToScan: string[] = settings.projectsPaths || [];
       if (api?.getSettings) {
         const loaded = await api.getSettings();
         setSettings(loaded);
-        pathsToScan = loaded.projectsPaths?.length ? loaded.projectsPaths : [loaded.projectsPath || '/Users/alaaelsaid/code'];
+        pathsToScan = loaded.projectsPaths?.length ? loaded.projectsPaths : (loaded.projectsPath ? [loaded.projectsPath] : []);
       }
       await scanProjects(pathsToScan);
     } catch {
@@ -165,7 +165,7 @@ export const App: React.FC = () => {
     try {
       const api = window.gityAPI || window.api;
       if (api?.scanProjects) {
-        const target = folderPaths || (settings.projectsPaths?.length ? settings.projectsPaths : ['/Users/alaaelsaid/code']);
+        const target = folderPaths !== undefined ? folderPaths : (settings.projectsPaths?.length ? settings.projectsPaths : []);
         const list = await api.scanProjects(target);
         setProjects(Array.isArray(list) ? list : []);
       }
@@ -565,7 +565,7 @@ export const App: React.FC = () => {
     ? selectedFolderFilter
     : (settings.projectsPaths?.length > 1
       ? `${settings.projectsPaths.length} Folders`
-      : settings.projectsPath || '/Users/alaaelsaid/code');
+      : settings.projectsPath || (settings.projectsPaths?.[0] || 'No folder selected'));
 
   return (
     <div className="flex h-screen w-screen bg-[#f8fafc] dark:bg-[#0a0d14] text-slate-800 dark:text-slate-100 select-none overflow-hidden font-sans">

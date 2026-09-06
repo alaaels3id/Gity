@@ -37,7 +37,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     if (currentSettings.projectsPath) {
       return [currentSettings.projectsPath];
     }
-    return ['/Users/alaaelsaid/code'];
+    return [];
   });
   const [editor, setEditor] = useState(currentSettings.editor || 'code');
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'ar'>(language);
@@ -75,7 +75,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleReset = () => {
-    setFolders(['/Users/alaaelsaid/code']);
+    setFolders(currentSettings.projectsPaths?.length ? [...currentSettings.projectsPaths] : []);
     setEditor('code');
     setSelectedLanguage('en');
   };

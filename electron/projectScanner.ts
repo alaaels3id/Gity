@@ -268,7 +268,8 @@ export async function scanDirectory(folderPath: string, customRootName?: string)
       .map(entry => entry.name)
       .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
-    const rootName = customRootName || path.basename(folderPath);
+    const rootName = customRootName || path.basename(folderPath) || folderPath;
+    const safeRootId = (rootName || 'root').replace(/[:\\/]/g, '_');
     const batchSize = 6;
     const results: ProjectItem[] = [];
 
@@ -284,7 +285,7 @@ export async function scanDirectory(folderPath: string, customRootName?: string)
           ]);
 
           return {
-            id: `${rootName}_${name}`,
+            id: `${safeRootId}_${name}`,
             name,
             path: fullPath,
             rootPath: folderPath,

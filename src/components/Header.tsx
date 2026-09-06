@@ -156,7 +156,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span className={`absolute top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 bg-slate-200/60 dark:bg-white/[0.06] rounded px-1.5 py-0.5 pointer-events-none ${
               isRTL ? 'left-2' : 'right-2'
             }`}>
-              ⌘F
+              {typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent) ? '⌘F' : 'Ctrl+F'}
             </span>
           </div>
 
