@@ -51,7 +51,7 @@ Gity/
 ├── package.json               # Scripts & electron-builder config
 ├── tsconfig.json              # React / Vite TypeScript config
 ├── tsconfig.electron.json     # Electron TypeScript config
-└── vite.config.ts             # Vite configuration
+└── vite.config.mts            # Vite configuration
 ```
 
 ---
