@@ -1,7 +1,7 @@
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
-import { GitSummary, DetailedGitStatus, FetchResult, PullResult, RemoteResult, ChangedFile, CheckoutResult, ResetResult } from './types';
+import { GitSummary, DetailedGitStatus, FetchResult, PullResult, PushResult, CommitAndPushResult, RemoteResult, ChangedFile, CheckoutResult, ResetResult } from './types';
 
 function getGitEnv(): NodeJS.ProcessEnv {
   const isWin = process.platform === 'win32';
@@ -35,6 +35,18 @@ function getGitEnv(): NodeJS.ProcessEnv {
     GIT_TERMINAL_PROMPT: '0',
     GIT_SSH_COMMAND: 'ssh -o BatchMode=yes -o ConnectTimeout=10',
   };
+}
+
+function runGitCli(args: string[], cwd: string, timeout = 30000): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile('git', args, { cwd, timeout, maxBuffer: 1024 * 1024 * 2, env: getGitEnv() }, (error, stdout, stderr) => {
+      if (error) {
+        const errMsg = (stderr || error.message || '').trim();
+        return reject(new Error(errMsg || `Git command failed: git ${args.join(' ')}`));
+      }
+      resolve((stdout || '').trim());
+    });
+  });
 }
 
 function runGitCommand(cmd: string, cwd: string, timeout = 30000): Promise<string> {
@@ -249,6 +261,154 @@ export async function pullProject(projectPath: string): Promise<PullResult> {
     return {
       success: false,
       message: errMsg,
+      duration,
+      summary,
+    };
+  }
+}
+
+export async function pushProject(projectPath: string, options?: { force?: boolean }): Promise<PushResult> {
+  if (!isGitRepo(projectPath)) {
+    return {
+      success: false,
+      message: 'Not a git repository',
+      duration: '0s',
+      summary: {
+        isGit: false,
+        branch: 'No Git',
+        clean: true,
+        modifiedCount: 0,
+        ahead: 0,
+        behind: 0,
+        lastCommit: null,
+      },
+    };
+  }
+
+  const startTime = Date.now();
+  try {
+    const forceFlag = options?.force ? ' --force' : '';
+    let stdout = '';
+    try {
+      stdout = await runGitCommand(`git push${forceFlag}`, projectPath, 45000);
+    } catch (pushErr: any) {
+      const errText = pushErr.message || '';
+      // If there's no upstream configured for this branch, set upstream
+      if (
+        errText.includes('has no upstream branch') ||
+        errText.includes('no upstream') ||
+        errText.includes('--set-upstream')
+      ) {
+        const summary = await getGitSummary(projectPath);
+        const branch = summary.branch !== 'unknown' && summary.branch !== 'No Git' ? summary.branch : 'HEAD';
+        let remoteName = 'origin';
+        try {
+          const remotes = await runGitCommand('git remote', projectPath);
+          const firstRemote = remotes.split('\n').map(r => r.trim()).filter(Boolean)[0];
+          if (firstRemote) remoteName = firstRemote;
+        } catch {}
+        stdout = await runGitCommand(`git push --set-upstream ${remoteName} "${branch}"${forceFlag}`, projectPath, 45000);
+      } else {
+        throw pushErr;
+      }
+    }
+
+    const duration = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+    const updatedSummary = await getGitSummary(projectPath);
+
+    return {
+      success: true,
+      message: stdout || 'Pushed successfully.',
+      duration,
+      summary: updatedSummary,
+    };
+  } catch (err: any) {
+    const duration = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+    const summary = await getGitSummary(projectPath);
+    let errMsg = err.message || 'Git push failed';
+
+    if (errMsg.includes('Updates were rejected because the remote contains work') || errMsg.includes('[rejected]')) {
+      errMsg = 'Push rejected: Remote repository has new changes. Please pull first before pushing.';
+    } else if (errMsg.includes('Could not read from remote repository') || errMsg.includes('Permission denied')) {
+      errMsg = 'Push failed: Access denied to remote repository. Check your SSH keys or permissions.';
+    } else if (errMsg.includes('Could not resolve host') || errMsg.includes('timed out')) {
+      errMsg = 'Network error: Unable to reach remote server.';
+    } else if (errMsg.includes('No configured push destination') || errMsg.includes('No remote repository specified')) {
+      errMsg = 'Push failed: No remote repository configured.';
+    }
+
+    return {
+      success: false,
+      message: errMsg,
+      duration,
+      summary,
+    };
+  }
+}
+
+export async function commitAndPush(
+  projectPath: string,
+  message: string,
+  files?: string[]
+): Promise<CommitAndPushResult> {
+  if (!isGitRepo(projectPath)) {
+    return {
+      success: false,
+      message: 'Not a git repository',
+      duration: '0s',
+    };
+  }
+
+  const startTime = Date.now();
+  const commitMsg = (message || 'Update project files').trim();
+
+  try {
+    // 1. Stage files (specific files or all modified/untracked files)
+    if (files && files.length > 0) {
+      await runGitCli(['add', '-A', '--', ...files], projectPath);
+    } else {
+      await runGitCli(['add', '-A'], projectPath);
+    }
+
+    // 2. Commit
+    try {
+      await runGitCli(['commit', '-m', commitMsg], projectPath);
+    } catch (commitErr: any) {
+      const commitErrText = commitErr.message || '';
+      if (commitErrText.includes('nothing to commit') || commitErrText.includes('working tree clean')) {
+        // Nothing to commit, proceed to push
+      } else if (commitErrText.includes('Author identity unknown') || commitErrText.includes('user.email') || commitErrText.includes('user.name')) {
+        throw new Error('Git user identity unknown. Please configure git user.name and user.email.');
+      } else {
+        throw commitErr;
+      }
+    }
+
+    // 3. Push using pushProject
+    const pushRes = await pushProject(projectPath);
+    const duration = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+
+    if (!pushRes.success) {
+      return {
+        success: false,
+        message: `Committed successfully, but push failed: ${pushRes.message}`,
+        duration,
+        summary: pushRes.summary,
+      };
+    }
+
+    return {
+      success: true,
+      message: `Committed & pushed in ${duration}`,
+      duration,
+      summary: pushRes.summary,
+    };
+  } catch (err: any) {
+    const duration = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+    const summary = await getGitSummary(projectPath);
+    return {
+      success: false,
+      message: err.message || 'Failed to commit and push modifications',
       duration,
       summary,
     };

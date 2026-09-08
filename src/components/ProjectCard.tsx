@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { ProjectItem } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { Tooltip } from './Tooltip';
 import { BranchSelector } from './BranchSelector';
 import { getTechMeta } from '../utils/projectType';
 
@@ -21,6 +22,8 @@ interface ProjectCardProps {
   project: ProjectItem;
   isFetching: boolean;
   isPulling?: boolean;
+  isBulkFetching?: boolean;
+  isBulkPulling?: boolean;
   onOpenLocation: (path: string) => void;
   onFetchRemote: (path: string, id: string) => void;
   onPullProject?: (path: string, id: string) => void;
@@ -33,6 +36,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   project,
   isFetching,
   isPulling = false,
+  isBulkFetching = false,
+  isBulkPulling = false,
   onOpenLocation,
   onFetchRemote,
   onPullProject,
@@ -117,7 +122,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                     branches={project.branches}
                     projectPath={project.path}
                     onCheckout={onCheckoutBranch ? (b) => onCheckoutBranch(project.path, b, project.id) : undefined}
-                    disabled={isFetching}
+                    disabled={isFetching || isPulling || isBulkFetching || isBulkPulling}
                     size="sm"
                     className="max-w-[130px]"
                   />
@@ -176,51 +181,59 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
       {/* Action Buttons */}
       <div className="mt-auto grid grid-cols-4 gap-1.5 pt-2.5 border-t border-slate-200/80 dark:border-white/[0.06]">
         {/* 1. Reveal in Finder */}
-        <button
-          onClick={() => onOpenLocation(project.path)}
-          title={t('openInFinder')}
-          className="studio-btn px-2 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer gap-1"
-        >
-          <Folder className="w-3 h-3 text-sky-500 shrink-0" />
-          <span className="truncate text-[11px]">{t('location')}</span>
-        </button>
+        <Tooltip content={t('openInFinder')} className="w-full">
+          <button
+            onClick={() => onOpenLocation(project.path)}
+            title={t('openInFinder')}
+            aria-label={t('openInFinder')}
+            className="studio-btn w-full h-8 !px-0 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer justify-center"
+          >
+            <Folder className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+          </button>
+        </Tooltip>
 
         {/* 2. Fetch */}
-        <button
-          onClick={() => onFetchRemote(project.path, project.id)}
-          disabled={!project.isGit || isFetching || isPulling}
-          title={t('fetchRemote')}
-          className={`studio-btn px-2 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 cursor-pointer gap-1 ${
-            isFetching ? 'text-sky-500 border-sky-500/50' : ''
-          }`}
-        >
-          <RefreshCw className={`w-3 h-3 text-sky-500 shrink-0 ${isFetching ? 'animate-spin' : ''}`} />
-          <span className="truncate text-[11px]">{isFetching ? t('fetching') : t('fetch')}</span>
-        </button>
+        <Tooltip content={isFetching ? t('fetching') : t('fetchRemote')} className="w-full">
+          <button
+            onClick={() => onFetchRemote(project.path, project.id)}
+            disabled={!project.isGit || isFetching || isPulling || isBulkFetching || isBulkPulling}
+            title={t('fetchRemote')}
+            aria-label={t('fetchRemote')}
+            className={`studio-btn w-full h-8 !px-0 text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 cursor-pointer justify-center ${
+              isFetching ? 'text-sky-500 border-sky-500/50' : ''
+            }`}
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-sky-500 shrink-0 ${isFetching ? 'animate-spin' : ''}`} />
+          </button>
+        </Tooltip>
 
         {/* 3. Pull */}
-        <button
-          onClick={() => onPullProject?.(project.path, project.id)}
-          disabled={!project.isGit || isPulling || isFetching}
-          title={t('pullNow')}
-          className={`studio-btn px-2 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer gap-1 ${
-            isPulling ? 'text-emerald-500 border-emerald-500/50' : ''
-          }`}
-        >
-          <Download className={`w-3 h-3 text-emerald-500 shrink-0 ${isPulling ? 'animate-bounce' : ''}`} />
-          <span className="truncate text-[11px]">{isPulling ? t('pulling') : t('pullNow')}</span>
-        </button>
+        <Tooltip content={isPulling ? t('pulling') : t('pullNow')} className="w-full">
+          <button
+            onClick={() => onPullProject?.(project.path, project.id)}
+            disabled={!project.isGit || isPulling || isFetching || isBulkPulling || isBulkFetching}
+            title={t('pullNow')}
+            aria-label={t('pullNow')}
+            className={`studio-btn w-full h-8 !px-0 text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer justify-center ${
+              isPulling ? 'text-emerald-500 border-emerald-500/50' : ''
+            }`}
+          >
+            <Download className={`w-3.5 h-3.5 text-emerald-500 shrink-0 ${isPulling ? 'animate-bounce' : ''}`} />
+          </button>
+        </Tooltip>
 
         {/* 4. Status */}
-        <button
-          onClick={() => onOpenStatus(project)}
-          disabled={!project.isGit}
-          title={t('gitStatusTitle')}
-          className="studio-btn px-2 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 cursor-pointer gap-1"
-        >
-          <Activity className="w-3 h-3 text-amber-500 shrink-0" />
-          <span className="truncate text-[11px]">{t('status')}</span>
-        </button>
+        <Tooltip content={t('gitStatusTitle')} className="w-full">
+          <button
+            onClick={() => onOpenStatus(project)}
+            disabled={!project.isGit}
+            title={t('gitStatusTitle')}
+            aria-label={t('gitStatusTitle')}
+            className="studio-btn w-full h-8 !px-0 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 cursor-pointer justify-center"
+          >
+            <Activity className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          </button>
+        </Tooltip>
       </div>
     </div>
   );

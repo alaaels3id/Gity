@@ -17,7 +17,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
 
   return (
     <div
-      className={`relative inline-flex items-center justify-center max-w-full min-w-0 ${className}`}
+      className={`relative ${className.includes('w-full') ? 'flex w-full' : 'inline-flex shrink-0'} items-center justify-center ${className}`}
       onMouseEnter={() => setIsVisible(true)}
       onMouseLeave={() => setIsVisible(false)}
       onFocus={() => setIsVisible(true)}
@@ -27,19 +27,18 @@ export const Tooltip: React.FC<TooltipProps> = ({
       {isVisible && content && (
         <div
           role="tooltip"
-          className={`absolute z-50 pointer-events-none px-3 py-1.5 text-xs font-extrabold text-[#00c8ff] bg-[#121728] border-2 border-[#00c8ff] rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.5),0_2px_0_#006b8f] w-max max-w-xs whitespace-nowrap text-center animate-in fade-in zoom-in-95 duration-100 ${
+          className={`absolute z-50 pointer-events-none px-2.5 py-1 text-[11px] font-medium text-slate-100 bg-slate-900/95 dark:bg-[#151c2e]/95 border border-slate-700/60 dark:border-white/10 rounded-lg shadow-xl backdrop-blur-sm w-max max-w-xs whitespace-nowrap text-center animate-in fade-in zoom-in-95 duration-100 ${
             position === 'top'
-              ? 'bottom-full mb-2 left-1/2 -translate-x-1/2'
-              : 'top-full mt-2 left-1/2 -translate-x-1/2'
+              ? 'bottom-full mb-1.5 left-1/2 -translate-x-1/2'
+              : 'top-full mt-1.5 left-1/2 -translate-x-1/2'
           }`}
         >
           {content}
-          {/* Toy Speech Bubble Pointer */}
           <div
             className={`absolute left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent ${
               position === 'top'
-                ? 'top-full border-t-4 border-t-[#00c8ff]'
-                : 'bottom-full border-b-4 border-b-[#00c8ff]'
+                ? 'top-full border-t-4 border-t-slate-900 dark:border-t-[#151c2e]'
+                : 'bottom-full border-b-4 border-b-slate-900 dark:border-b-[#151c2e]'
             }`}
           />
         </div>

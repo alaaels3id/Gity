@@ -163,6 +163,20 @@ export interface ResetResult {
   summary?: GitSummary;
 }
 
+export interface PushResult {
+  success: boolean;
+  message: string;
+  duration: string;
+  summary?: GitSummary;
+}
+
+export interface CommitAndPushResult {
+  success: boolean;
+  message: string;
+  duration: string;
+  summary?: GitSummary;
+}
+
 export interface GityAPI {
   getSettings: () => Promise<AppSettings>;
   saveSettings: (settings: Partial<AppSettings>) => Promise<AppSettings>;
@@ -171,6 +185,8 @@ export interface GityAPI {
   openLocation: (projectPath: string) => Promise<boolean>;
   fetchRemote: (projectPath: string) => Promise<FetchResult>;
   pullProject: (projectPath: string) => Promise<PullResult>;
+  pushProject?: (projectPath: string, options?: { force?: boolean }) => Promise<PushResult>;
+  commitAndPush?: (projectPath: string, message: string, files?: string[]) => Promise<CommitAndPushResult>;
   getStatus: (projectPath: string) => Promise<DetailedGitStatus>;
   getGitStatus?: (projectPath: string) => Promise<DetailedGitStatus>;
   getProjectDetails: (projectPath: string) => Promise<ProjectDetails>;

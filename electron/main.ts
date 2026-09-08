@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { exec, execFile } from 'child_process';
 import { loadSettings, saveSettings, getDefaultProjectsPath } from './settingsStore';
 import { scanDirectory, scanMultipleDirectories, getProjectFullDetails } from './projectScanner';
-import { fetchRemote, pullProject, getDetailedStatus, getFileDiff, getProjectBranches, checkoutBranch, setRemoteUrl, resetProjectChanges } from './gitService';
+import { fetchRemote, pullProject, pushProject, commitAndPush, getDetailedStatus, getFileDiff, getProjectBranches, checkoutBranch, setRemoteUrl, resetProjectChanges } from './gitService';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -143,6 +143,14 @@ function registerIpcHandlers() {
     return await pullProject(projectPath);
   });
 
+  ipcMain.handle('projects:push', async (_, { projectPath, force = false }) => {
+    return await pushProject(projectPath, { force });
+  });
+
+  ipcMain.handle('projects:commit-and-push', async (_, { projectPath, message, files }) => {
+    return await commitAndPush(projectPath, message, files);
+  });
+
   ipcMain.handle('projects:status', async (_, projectPath) => {
     return await getDetailedStatus(projectPath);
   });
@@ -156,22 +164,85 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle('projects:open-editor', async (_, { projectPath, editor = 'code' }) => {
-    let editorCmd = editor;
-    if (process.platform === 'win32' && editor === 'pstorm') {
-      editorCmd = 'phpstorm64';
+    const isMac = process.platform === 'darwin';
+    const isWin = process.platform === 'win32';
+
+    // Augmented PATH so CLI tools installed in /usr/local/bin or homebrew can be found
+    const env = {
+      ...process.env,
+      PATH: [
+        '/usr/local/bin',
+        '/opt/homebrew/bin',
+        '/opt/homebrew/sbin',
+        process.env.PATH || '',
+      ].filter(Boolean).join(isWin ? ';' : ':'),
+    };
+
+    const candidates: string[] = [];
+    const normalized = (editor || 'code').toLowerCase().trim();
+
+    if (isMac) {
+      if (normalized === 'phpstorm' || normalized === 'pstorm') {
+        candidates.push(`open -a "PhpStorm" "${projectPath}"`);
+        candidates.push(`pstorm "${projectPath}"`);
+        candidates.push(`phpstorm "${projectPath}"`);
+      } else if (normalized === 'cursor') {
+        candidates.push(`open -a "Cursor" "${projectPath}"`);
+        candidates.push(`cursor "${projectPath}"`);
+      } else if (normalized === 'code' || normalized === 'vscode') {
+        candidates.push(`open -a "Visual Studio Code" "${projectPath}"`);
+        candidates.push(`code "${projectPath}"`);
+      } else if (normalized === 'subl' || normalized === 'sublime') {
+        candidates.push(`open -a "Sublime Text" "${projectPath}"`);
+        candidates.push(`subl "${projectPath}"`);
+      } else {
+        candidates.push(`open -a "${editor}" "${projectPath}"`);
+        candidates.push(`${editor} "${projectPath}"`);
+      }
+    } else if (isWin) {
+      if (normalized === 'phpstorm' || normalized === 'pstorm') {
+        candidates.push(`phpstorm64 "${projectPath}"`);
+        candidates.push(`pstorm "${projectPath}"`);
+      } else if (normalized === 'code') {
+        candidates.push(`code "${projectPath}"`);
+      } else if (normalized === 'cursor') {
+        candidates.push(`cursor "${projectPath}"`);
+      } else if (normalized === 'subl') {
+        candidates.push(`subl "${projectPath}"`);
+      } else {
+        candidates.push(`${editor} "${projectPath}"`);
+      }
+    } else {
+      if (normalized === 'phpstorm' || normalized === 'pstorm') {
+        candidates.push(`pstorm "${projectPath}"`);
+        candidates.push(`phpstorm "${projectPath}"`);
+      } else if (normalized === 'code') {
+        candidates.push(`code "${projectPath}"`);
+      } else if (normalized === 'cursor') {
+        candidates.push(`cursor "${projectPath}"`);
+      } else if (normalized === 'subl') {
+        candidates.push(`subl "${projectPath}"`);
+      } else {
+        candidates.push(`${editor} "${projectPath}"`);
+      }
     }
+
     return new Promise((resolve, reject) => {
-      exec(`${editorCmd} "${projectPath}"`, (err) => {
-        if (err && editorCmd !== editor) {
-          exec(`${editor} "${projectPath}"`, (fallbackErr) => {
-            if (fallbackErr) return reject(err);
-            resolve(true);
-          });
-          return;
+      let index = 0;
+      const tryNext = (lastErr?: any) => {
+        if (index >= candidates.length) {
+          return reject(lastErr || new Error(`Failed to launch editor (${editor})`));
         }
-        if (err) return reject(err);
-        resolve(true);
-      });
+        const cmd = candidates[index++];
+        exec(cmd, { env }, (err) => {
+          if (err) {
+            tryNext(err);
+          } else {
+            resolve(true);
+          }
+        });
+      };
+      tryNext();
     });
   });
 

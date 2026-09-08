@@ -71,6 +71,16 @@ export interface Translations {
   fetchRemote: string;
   pullNow: string;
   pulling: string;
+  push: string;
+  pushing: string;
+  pushSuccess: string;
+  pushFailed: string;
+  pushModifications: string;
+  commitAndPushTitle: string;
+  commitMsgPlaceholder: string;
+  commitAndPushBtn: string;
+  committingAndPushing: string;
+  pushToRemote: string;
   gitStatusTitle: string;
   branch: string;
   switchBranch: string;
@@ -224,6 +234,16 @@ export const translations: Record<Language, Translations> = {
     fetchRemote: 'Fetch Remote',
     pullNow: 'Pull Now',
     pulling: 'Pulling',
+    push: 'Push',
+    pushing: 'Pushing',
+    pushSuccess: 'Pushed successfully',
+    pushFailed: 'Push failed',
+    pushModifications: 'Push Modifications',
+    commitAndPushTitle: 'Commit & Push Modifications',
+    commitMsgPlaceholder: 'Write a commit message describing your changes...',
+    commitAndPushBtn: 'Commit & Push',
+    committingAndPushing: 'Committing & Pushing...',
+    pushToRemote: 'Push to Remote',
     gitStatusTitle: 'Git Status',
     branch: 'Branch',
     switchBranch: 'Switch branch',
@@ -373,9 +393,19 @@ export const translations: Record<Language, Translations> = {
     openInFinder: 'فايندر',
     openInEditor: 'فتح في المحرر',
     fetchRemote: 'جلب من المستودع',
-    pullNow: 'سحب التغييرات (Pull)',
+    pullNow: 'سحب الآن',
     pulling: 'جاري السحب',
-    gitStatusTitle: 'حالة جيت',
+    push: 'رفع',
+    pushing: 'جاري الرفع',
+    pushSuccess: 'تم الرفع بنجاح',
+    pushFailed: 'فشل الرفع',
+    pushModifications: 'رفع التعديلات',
+    commitAndPushTitle: 'تثبيت ورفع التعديلات',
+    commitMsgPlaceholder: 'اكتب وصفاً للتعديلات...',
+    commitAndPushBtn: 'تثبيت ورفع',
+    committingAndPushing: 'جاري التثبيت والرفع...',
+    pushToRemote: 'رفع التغييرات إلى المستودع البعيد',
+    gitStatusTitle: 'حالة Git',
     branch: 'الفرع',
     switchBranch: 'تبديل الفرع',
     switchingBranch: 'جاري التبديل إلى {branch}...',

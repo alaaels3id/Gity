@@ -21,6 +21,8 @@ interface ProjectListItemProps {
   project: ProjectItem;
   isFetching: boolean;
   isPulling?: boolean;
+  isBulkFetching?: boolean;
+  isBulkPulling?: boolean;
   onOpenLocation: (path: string) => void;
   onFetchRemote: (path: string, id: string) => void;
   onPullProject?: (path: string, id: string) => void;
@@ -33,6 +35,8 @@ export const ProjectListItem: React.FC<ProjectListItemProps> = ({
   project,
   isFetching,
   isPulling = false,
+  isBulkFetching = false,
+  isBulkPulling = false,
   onOpenLocation,
   onFetchRemote,
   onPullProject,
@@ -111,7 +115,7 @@ export const ProjectListItem: React.FC<ProjectListItemProps> = ({
             branches={project.branches}
             projectPath={project.path}
             onCheckout={onCheckoutBranch ? (b) => onCheckoutBranch(project.path, b, project.id) : undefined}
-            disabled={isFetching}
+            disabled={isFetching || isPulling || isBulkFetching || isBulkPulling}
             size="md"
             className="w-full max-w-[160px]"
           />
@@ -155,7 +159,7 @@ export const ProjectListItem: React.FC<ProjectListItemProps> = ({
       </div>
 
       {/* 4. Latest Commit Info Preview (Col 4) */}
-      <div className="hidden lg:flex lg:col-span-3 xl:col-span-3 min-w-0 overflow-hidden text-xs text-slate-700 dark:text-slate-300 pr-4 rtl:pr-0 rtl:pl-4">
+      <div className="hidden lg:flex lg:col-span-2 xl:col-span-3 min-w-0 overflow-hidden text-xs text-slate-700 dark:text-slate-300 pr-4 rtl:pr-0 rtl:pl-4">
         {project.lastCommit ? (
           <div className="flex flex-col gap-0.5 min-w-0 w-full overflow-hidden">
             <div className="flex items-center gap-2 text-[10px] text-slate-400 min-w-0">
@@ -175,12 +179,13 @@ export const ProjectListItem: React.FC<ProjectListItemProps> = ({
       </div>
 
       {/* 5. Action Buttons (Col 5) */}
-      <div className="col-span-1 md:col-span-3 lg:col-span-2 xl:col-span-2 min-w-0 flex items-center justify-start md:justify-end gap-1.5 shrink-0">
+      <div className="col-span-1 md:col-span-3 lg:col-span-3 xl:col-span-2 flex items-center justify-start md:justify-end gap-1.5 shrink-0">
         {/* Location */}
         <Tooltip content={t('openInFinder')}>
           <button
             onClick={() => onOpenLocation(project.path)}
-            className="p-1.5 studio-btn text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer shrink-0"
+            title={t('openInFinder')}
+            className="studio-btn studio-btn-icon text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer"
           >
             <Folder className="w-3.5 h-3.5 text-sky-500 shrink-0" />
           </button>
@@ -190,8 +195,9 @@ export const ProjectListItem: React.FC<ProjectListItemProps> = ({
         <Tooltip content={isFetching ? t('fetching') : t('fetchRemote')}>
           <button
             onClick={() => onFetchRemote(project.path, project.id)}
-            disabled={!project.isGit || isFetching || isPulling}
-            className={`p-1.5 studio-btn text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 cursor-pointer shrink-0 ${
+            disabled={!project.isGit || isFetching || isPulling || isBulkFetching || isBulkPulling}
+            title={t('fetchRemote')}
+            className={`studio-btn studio-btn-icon text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 cursor-pointer ${
               isFetching ? 'text-sky-500 border-sky-500/50' : ''
             }`}
           >
@@ -203,8 +209,9 @@ export const ProjectListItem: React.FC<ProjectListItemProps> = ({
         <Tooltip content={isPulling ? t('pulling') : t('pullNow')}>
           <button
             onClick={() => onPullProject?.(project.path, project.id)}
-            disabled={!project.isGit || isPulling || isFetching}
-            className={`p-1.5 studio-btn text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer shrink-0 ${
+            disabled={!project.isGit || isPulling || isFetching || isBulkPulling || isBulkFetching}
+            title={t('pullNow')}
+            className={`studio-btn studio-btn-icon text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer ${
               isPulling ? 'text-emerald-500 border-emerald-500/50' : ''
             }`}
           >
@@ -217,7 +224,8 @@ export const ProjectListItem: React.FC<ProjectListItemProps> = ({
           <button
             onClick={() => onOpenStatus(project)}
             disabled={!project.isGit}
-            className="p-1.5 studio-btn text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 cursor-pointer shrink-0"
+            title={t('gitStatusTitle')}
+            className="studio-btn studio-btn-icon text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 cursor-pointer"
           >
             <Activity className="w-3.5 h-3.5 text-amber-500 shrink-0" />
           </button>

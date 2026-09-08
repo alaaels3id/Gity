@@ -24,6 +24,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Download,
+  Upload,
   Edit3,
   Plus,
   X,
@@ -42,6 +43,7 @@ interface ProjectDetailsPageProps {
   onOpenFolder: (path: string) => void;
   onFetchRemote: (path: string, id: string) => void;
   onPullProject?: (path: string, id: string) => void;
+  onPushProject?: (path: string, id: string) => Promise<any>;
   isPulling?: boolean;
   onShowToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
   onCheckoutBranch?: (path: string, branch: string, id: string) => Promise<boolean | void>;
@@ -55,6 +57,7 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
   onOpenFolder,
   onFetchRemote,
   onPullProject,
+  onPushProject,
   isPulling: externalIsPulling,
   onShowToast,
   onCheckoutBranch,
@@ -66,6 +69,10 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
   const [loading, setLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [isPullingInternal, setIsPullingInternal] = useState(false);
+  const [isPushing, setIsPushing] = useState(false);
+  const [isCommittingAndPushing, setIsCommittingAndPushing] = useState(false);
+  const [showCommitPushModal, setShowCommitPushModal] = useState(false);
+  const [commitMessage, setCommitMessage] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [includeUntracked, setIncludeUntracked] = useState(true);
@@ -130,6 +137,62 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
       await loadDetails();
     } finally {
       setIsPullingInternal(false);
+    }
+  };
+
+  const handlePush = async () => {
+    setIsPushing(true);
+    try {
+      if (onPushProject) {
+        const res = await onPushProject(project.path, project.id);
+        if (res && !res.success) {
+          onShowToast?.(res.message || t('pushFailed'), 'error');
+        } else if (res && res.success) {
+          onShowToast?.(t('pushSuccess'), 'success');
+        }
+      } else {
+        const api = window.gityAPI || window.api;
+        if (api?.pushProject) {
+          const res = await api.pushProject(project.path);
+          if (res.success) {
+            onShowToast?.(t('pushSuccess'), 'success');
+          } else {
+            onShowToast?.(res.message || t('pushFailed'), 'error');
+          }
+        }
+      }
+      await loadDetails();
+    } catch (err: any) {
+      onShowToast?.(err.message || t('pushFailed'), 'error');
+    } finally {
+      setIsPushing(false);
+    }
+  };
+
+  const handleCommitAndPush = async () => {
+    const msg = commitMessage.trim() || 'Update project files';
+    setIsCommittingAndPushing(true);
+    try {
+      const api = window.gityAPI || window.api;
+      if (api?.commitAndPush) {
+        const res = await api.commitAndPush(project.path, msg);
+        if (res.success) {
+          onShowToast?.(res.message || t('pushSuccess'), 'success');
+          setShowCommitPushModal(false);
+          setCommitMessage('');
+          setSelectedFile(null);
+          setFileDiff(null);
+          await loadDetails();
+        } else {
+          onShowToast?.(res.message || t('pushFailed'), 'error');
+        }
+      } else {
+        onShowToast?.('Git commit and push service is unavailable', 'error');
+      }
+    } catch (err: any) {
+      onShowToast?.(err.message || t('pushFailed'), 'error');
+    } finally {
+      setIsCommittingAndPushing(false);
     }
   };
 
@@ -263,11 +326,15 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
   const handleOpenEditor = async () => {
     try {
       const api = window.gityAPI || window.api;
-      if (api?.openInEditor) {
-        await api.openInEditor(project.path, editor);
+      const openFn = api?.openEditor || api?.openInEditor;
+      if (openFn) {
+        await openFn(project.path, editor);
+        onShowToast?.(`Opened in ${editor || 'editor'}`, 'success');
+      } else {
+        onShowToast?.('Editor launcher is unavailable', 'error');
       }
-    } catch {
-      onShowToast?.('Failed to open editor', 'error');
+    } catch (err: any) {
+      onShowToast?.(err.message || 'Failed to open editor', 'error');
     }
   };
 
@@ -299,23 +366,23 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
 
         <div className="no-drag flex items-center justify-between gap-4">
           {/* Back button + Project Name */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <button
               onClick={onBack}
-              className="studio-btn h-8 px-2.5 text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white cursor-pointer gap-2"
+              className="studio-btn h-8 px-2.5 text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white cursor-pointer gap-2 shrink-0"
             >
               {isRTL ? <ArrowRight className="w-3.5 h-3.5 text-sky-500" /> : <ArrowLeft className="w-3.5 h-3.5 text-sky-500" />}
-              <span>{t('backToProjects')}</span>
+              <span className="whitespace-nowrap">{t('backToProjects')}</span>
               <kbd className="text-[10px] text-slate-400 font-mono bg-slate-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded border border-slate-200 dark:border-white/[0.08]">
                 ESC
               </kbd>
             </button>
 
-            <div className="h-4 w-px bg-slate-200 dark:bg-white/[0.08]" />
+            <div className="h-4 w-px bg-slate-200 dark:bg-white/[0.08] shrink-0" />
 
-            <div className="flex items-center gap-2.5">
-              <span className={`w-2 h-2 rounded-full ${project.clean ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]' : 'bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.5)]'} shrink-0`} />
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">{project.name}</h2>
+            <div className="flex items-center gap-2.5 min-w-0 truncate">
+              <span className={`w-2 h-2 rounded-full shrink-0 ${project.clean ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]' : 'bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.5)]'}`} />
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate">{project.name}</h2>
               
               {(() => {
                 const typeKey = project.projectType || (project.isLaravel ? 'laravel' : undefined);
@@ -328,7 +395,7 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
                     ? project.frameworkVersion.replace(/[\^~]/g, '') 
                     : null;
                 return (
-                  <span className={`inline-flex items-center gap-1 text-xs py-0.5 px-2 rounded-md font-semibold border ${
+                  <span className={`inline-flex items-center gap-1 text-xs py-0.5 px-2 rounded-md font-semibold border shrink-0 ${
                     typeKey === 'laravel' 
                       ? 'bg-[#ff2d20]/10 text-[#ff2d20] border-[#ff2d20]/30 dark:bg-[#ff2d20]/15 dark:border-[#ff2d20]/40 font-bold' 
                       : `${meta.bgColor} ${meta.textColor} ${meta.borderColor}`
@@ -341,13 +408,13 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
           </div>
 
           {/* Action buttons with organized grouping and balanced spacing */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Inspector tools */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 onClick={handleCopyPath}
                 title="Copy absolute path"
-                className="studio-btn h-8 px-2.5 text-xs text-slate-700 dark:text-slate-200 hover:text-sky-500 dark:hover:text-sky-400 cursor-pointer gap-1.5"
+                className="studio-btn h-8 px-2.5 text-xs text-slate-700 dark:text-slate-200 hover:text-sky-500 dark:hover:text-sky-400 cursor-pointer gap-1.5 whitespace-nowrap shrink-0"
               >
                 {copiedPath ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-sky-500" />}
                 <span>{t('copyPath')}</span>
@@ -355,7 +422,7 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
 
               <button
                 onClick={() => onOpenFolder(project.path)}
-                className="studio-btn h-8 px-2.5 text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white cursor-pointer gap-1.5"
+                className="studio-btn h-8 px-2.5 text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white cursor-pointer gap-1.5 whitespace-nowrap shrink-0"
               >
                 <Folder className="w-3.5 h-3.5 text-sky-500" />
                 <span>{t('openInFinder')}</span>
@@ -363,7 +430,7 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
 
               <button
                 onClick={handleOpenEditor}
-                className="studio-btn h-8 px-2.5 text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white cursor-pointer gap-1.5"
+                className="studio-btn h-8 px-2.5 text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white cursor-pointer gap-1.5 whitespace-nowrap shrink-0"
               >
                 <Code className="w-3.5 h-3.5 text-sky-500" />
                 <span>{t('openInEditor')}</span>
@@ -392,7 +459,7 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
 
               <button
                 onClick={handleFetch}
-                disabled={isFetching || isPulling || !project.isGit}
+                disabled={isFetching || isPulling || isPushing || !project.isGit}
                 className="studio-btn h-8 px-3 text-xs flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white"
               >
                 <RefreshCw className={`w-3.5 h-3.5 shrink-0 text-sky-500 ${isFetching ? 'animate-spin' : ''}`} />
@@ -401,11 +468,31 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
 
               <button
                 onClick={handlePull}
-                disabled={isPulling || isFetching || !project.isGit}
+                disabled={isPulling || isFetching || isPushing || !project.isGit}
                 className="studio-btn-primary h-8 px-3 text-xs flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0"
               >
                 <Download className={`w-3.5 h-3.5 shrink-0 ${isPulling ? 'animate-bounce' : ''}`} />
                 <span className="whitespace-nowrap">{isPulling ? t('pulling') : t('pullNow')}</span>
+              </button>
+
+              {/* Push button */}
+              <button
+                onClick={handlePush}
+                disabled={isPushing || isPulling || isFetching || !project.isGit}
+                className={`studio-btn h-8 px-3 text-xs flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 ${
+                  (details?.status?.ahead || project.ahead || 0) > 0
+                    ? 'border-sky-500/40 text-sky-600 dark:text-sky-300 hover:border-sky-500 bg-sky-500/5'
+                    : 'text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title={t('pushToRemote')}
+              >
+                <Upload className={`w-3.5 h-3.5 shrink-0 text-sky-500 ${isPushing ? 'animate-bounce' : ''}`} />
+                <span className="whitespace-nowrap">{isPushing ? t('pushing') : t('push')}</span>
+                {(details?.status?.ahead || project.ahead || 0) > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-md bg-sky-500/20 text-sky-600 dark:text-sky-400 font-mono font-bold text-[10px]">
+                    {details?.status?.ahead || project.ahead}
+                  </span>
+                )}
               </button>
 
               <button
@@ -794,8 +881,18 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
                   {details?.status && !details.status.clean && (
                     <div className="flex items-center gap-2">
                       <button
+                        onClick={() => setShowCommitPushModal(true)}
+                        disabled={isResetting || isCommittingAndPushing}
+                        className="studio-btn-primary h-8 px-3 text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+                        title={t('pushModifications')}
+                      >
+                        <Upload className={`w-3.5 h-3.5 ${isCommittingAndPushing ? 'animate-bounce' : ''}`} />
+                        <span>{t('pushModifications')}</span>
+                      </button>
+
+                      <button
                         onClick={() => setShowResetModal(true)}
-                        disabled={isResetting}
+                        disabled={isResetting || isCommittingAndPushing}
                         className="studio-btn h-8 px-2.5 text-xs text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 border-rose-500/30 hover:bg-rose-500/10 flex items-center gap-1.5 cursor-pointer"
                         title={t('resetAllChanges')}
                       >
@@ -830,6 +927,16 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
                     <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md font-medium">
                       {t('cleanTreeDesc')}
                     </p>
+                    {(details.status.ahead || 0) > 0 && (
+                      <button
+                        onClick={handlePush}
+                        disabled={isPushing}
+                        className="studio-btn-primary px-3 py-1.5 text-xs mt-2 cursor-pointer gap-1.5 flex items-center shadow-sm"
+                      >
+                        <Upload className={`w-3.5 h-3.5 ${isPushing ? 'animate-bounce' : ''}`} />
+                        <span>{isPushing ? t('pushing') : `${t('push')} (${details.status.ahead} ${t('ahead')})`}</span>
+                      </button>
+                    )}
                     {details.status.tracking && (
                       <span className="text-xs text-slate-600 dark:text-slate-300 mt-2 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06]">
                         {t('syncedWith')} <code className="text-sky-500 dark:text-sky-400 font-bold">{details.status.tracking}</code>
@@ -1036,6 +1143,80 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
                   <>
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>{t('confirmResetBtn')}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Commit & Push Confirmation Modal */}
+      {showCommitPushModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-150">
+          <div className="studio-card max-w-lg w-full p-6 space-y-5 bg-white dark:bg-[#131929] border border-slate-200 dark:border-white/[0.1] shadow-2xl">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-500 shrink-0">
+                <Upload className="w-5 h-5" />
+              </div>
+              <div className="space-y-1.5 flex-1">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  {t('commitAndPushTitle')}
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                  {details?.status?.filesCount || 0} modified file{(details?.status?.filesCount || 0) === 1 ? '' : 's'} will be staged, committed, and pushed to remote branch <span className="font-mono text-sky-500 font-semibold">{details?.status?.branch || project.branch}</span>.
+                </p>
+              </div>
+            </div>
+
+            {/* Commit Message Input */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                Commit Message
+              </label>
+              <textarea
+                value={commitMessage}
+                onChange={(e) => setCommitMessage(e.target.value)}
+                placeholder={t('commitMsgPlaceholder')}
+                disabled={isCommittingAndPushing}
+                rows={3}
+                className="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.08] focus:border-sky-500 rounded-xl p-3 text-xs text-slate-900 dark:text-white placeholder-slate-400 outline-none resize-none"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                    handleCommitAndPush();
+                  }
+                }}
+              />
+              <p className="text-[10px] text-slate-400">
+                Tip: Press <kbd className="font-mono bg-slate-100 dark:bg-white/[0.06] px-1 py-0.5 rounded border border-slate-200 dark:border-white/[0.08]">Cmd+Enter</kbd> to commit & push.
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowCommitPushModal(false)}
+                disabled={isCommittingAndPushing}
+                className="studio-btn px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+              >
+                {t('cancelBtn')}
+              </button>
+              <button
+                type="button"
+                onClick={handleCommitAndPush}
+                disabled={isCommittingAndPushing}
+                className="studio-btn-primary px-4 py-2 text-xs font-semibold cursor-pointer flex items-center gap-2 transition-all active:scale-95"
+              >
+                {isCommittingAndPushing ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>{t('committingAndPushing')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{t('commitAndPushBtn')}</span>
                   </>
                 )}
               </button>

@@ -218,7 +218,7 @@ export const App: React.FC = () => {
   };
 
   const handleFetchRemote = async (projectPath: string, projectId: string) => {
-    if (fetchingIds.has(projectId)) return;
+    if (fetchingIds.has(projectId) || isBulkFetching || isBulkPulling) return;
 
     setFetchingIds(prev => new Set(prev).add(projectId));
     try {
@@ -246,7 +246,7 @@ export const App: React.FC = () => {
   };
 
   const handlePullProject = async (projectPath: string, projectId: string) => {
-    if (pullingIds.has(projectId)) return;
+    if (pullingIds.has(projectId) || isBulkPulling || isBulkFetching) return;
 
     setPullingIds(prev => new Set(prev).add(projectId));
     try {
@@ -279,6 +279,26 @@ export const App: React.FC = () => {
         next.delete(projectId);
         return next;
       });
+    }
+  };
+
+  const handlePushProject = async (projectPath: string, projectId: string) => {
+    try {
+      const api = window.gityAPI || window.api;
+      if (api?.pushProject) {
+        const res = await api.pushProject(projectPath);
+        if (res.summary) {
+          setProjects(prev =>
+            prev.map(p => (p.id === projectId || p.path === projectPath ? { ...p, ...res.summary } : p))
+          );
+        }
+        if (selectedProjectForPage && (selectedProjectForPage.id === projectId || selectedProjectForPage.path === projectPath) && res.summary) {
+          setSelectedProjectForPage(prev => (prev ? { ...prev, ...res.summary } : null));
+        }
+        return res;
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Push failed', 'error');
     }
   };
 
@@ -660,6 +680,7 @@ export const App: React.FC = () => {
             onOpenFolder={handleOpenLocation}
             onFetchRemote={handleFetchRemote}
             onPullProject={handlePullProject}
+            onPushProject={handlePushProject}
             isPulling={pullingIds.has(selectedProjectForPage.id)}
             onCheckoutBranch={handleCheckoutBranch}
             onResetChanges={handleResetChanges}
@@ -743,6 +764,8 @@ export const App: React.FC = () => {
                       project={project}
                       isFetching={fetchingIds.has(project.id)}
                       isPulling={pullingIds.has(project.id)}
+                      isBulkFetching={isBulkFetching}
+                      isBulkPulling={isBulkPulling}
                       onOpenLocation={handleOpenLocation}
                       onFetchRemote={handleFetchRemote}
                       onPullProject={handlePullProject}
@@ -759,8 +782,8 @@ export const App: React.FC = () => {
                     <div className="col-span-1 md:col-span-4 lg:col-span-3 xl:col-span-3 truncate">{t('projectCol')}</div>
                     <div className="col-span-1 md:col-span-3 lg:col-span-2 xl:col-span-2 truncate">{t('branch')}</div>
                     <div className="col-span-1 md:col-span-2 lg:col-span-2 xl:col-span-2 truncate">{t('status')}</div>
-                    <div className="hidden lg:block lg:col-span-3 xl:col-span-3 truncate pr-4 rtl:pr-0 rtl:pl-4">{t('latestCommitCol')}</div>
-                    <div className="col-span-1 md:col-span-3 lg:col-span-2 xl:col-span-2 text-start md:text-end truncate">{t('actionsCol')}</div>
+                    <div className="hidden lg:block lg:col-span-2 xl:col-span-3 truncate pr-4 rtl:pr-0 rtl:pl-4">{t('latestCommitCol')}</div>
+                    <div className="col-span-1 md:col-span-3 lg:col-span-3 xl:col-span-2 text-start md:text-end truncate">{t('actionsCol')}</div>
                   </div>
                   {filteredProjects.map((project) => (
                     <ProjectListItem
@@ -768,6 +791,8 @@ export const App: React.FC = () => {
                       project={project}
                       isFetching={fetchingIds.has(project.id)}
                       isPulling={pullingIds.has(project.id)}
+                      isBulkFetching={isBulkFetching}
+                      isBulkPulling={isBulkPulling}
                       onOpenLocation={handleOpenLocation}
                       onFetchRemote={handleFetchRemote}
                       onPullProject={handlePullProject}

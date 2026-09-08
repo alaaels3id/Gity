@@ -145,6 +145,16 @@ code, kbd, samp, pre, .font-mono {
   user-select: none;
 }
 
+/* Square Icon-only Studio Buttons */
+.studio-btn-icon {
+  width: 2rem !important;
+  height: 2rem !important;
+  min-width: 2rem !important;
+  max-width: 2rem !important;
+  padding: 0 !important;
+  flex-shrink: 0 !important;
+}
+
 .studio-btn:hover, .toy-btn:hover, .deck-btn:hover {
   background-color: var(--studio-surface-elevated);
   border-color: var(--studio-border-hover);
