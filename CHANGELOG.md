@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-09-08
+
+### Added
+- **Git Push & Commit-and-Push Operations**:
+  - One-click `Push` button in project details top bar with automatic remote upstream detection (`--set-upstream`).
+  - `Commit & Push Modifications` modal allowing users to stage, write commit message, and push directly from the Modifications panel.
+  - Safe binary execution (`execFile` / `runGitCli`) for Git commands, eliminating shell escaping issues with multi-line commit messages, quotes, backticks, and special characters.
+  - Error detection with user-friendly messages for push rejections, network timeouts, and unconfigured Git identity (`user.name` / `user.email`).
+- **Automated Commit Message Generator**:
+  - Smart, context-aware commit message generation analyzing modified files, Git status codes, and active branch prefixes.
+  - Automatic Conventional Commit scope detection (`ui`, `electron`, `api`, `models`, `database`, `styles`, `test`, `docs`, `config`).
+  - Interactive `✨ Auto-generate` button that cycles through Conventional Commit concise summaries, action summaries, and detailed bulleted breakdowns.
+  - Real-time character counter and keyboard shortcut (`Cmd+Enter` / `Ctrl+Enter`) for fast staging, committing, and pushing.
+- **Auto-Update & Distribution Infrastructure**:
+  - Configured GitHub provider publishing options in `electron-builder` for automated application releases and updates.
+- **Multilingual UI Support**:
+  - Localized the sidebar `ADD +` button across English and Arabic interfaces.
+  - Complete Arabic translations for all push operations, commit modals, and generator actions.
+
+### Changed
+- **Modern Build Pipeline**:
+  - Migrated `vite.config.ts` to `vite.config.mts` with ECMAScript module resolution for path aliases.
+- **UI & Grid Alignment Polish**:
+  - Replaced text labels in `ProjectCard` action toolbar with high-craftsmanship icon buttons and tooltips.
+  - Optimized list view grid column proportions between commit preview and action buttons across responsive breakpoints.
+  - Added `.studio-btn-icon` styling for pixel-perfect, non-collapsing square action buttons.
+  - Prevented concurrent fetch/pull actions on individual project rows during bulk "Fetch All" and "Pull All" operations.
+
+### Fixed
+- Fixed overlapping action buttons in `ProjectListItem` list view caused by flex compression and default button padding.
+- Fixed `Tooltip` layout squeezing and card-stack overlapping in flex containers with `shrink-0`.
+- Fixed "Open in Editor" application launching on macOS by augmenting `PATH` and resolving editor binaries/app bundles.
+- Fixed missing IPC handler registration for `projects:commit-and-push` and `projects:push`.
+
+---
+
 ## [1.2.0] - 2026-09-06
 
 ### Added
