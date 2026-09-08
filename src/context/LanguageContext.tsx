@@ -78,6 +78,8 @@ export interface Translations {
   pushModifications: string;
   commitAndPushTitle: string;
   commitMsgPlaceholder: string;
+  autoGenerateMsg: string;
+  generatedMsgSuccess: string;
   commitAndPushBtn: string;
   committingAndPushing: string;
   pushToRemote: string;
@@ -241,6 +243,8 @@ export const translations: Record<Language, Translations> = {
     pushModifications: 'Push Modifications',
     commitAndPushTitle: 'Commit & Push Modifications',
     commitMsgPlaceholder: 'Write a commit message describing your changes...',
+    autoGenerateMsg: 'Auto-generate message',
+    generatedMsgSuccess: 'Generated commit message from modified files',
     commitAndPushBtn: 'Commit & Push',
     committingAndPushing: 'Committing & Pushing...',
     pushToRemote: 'Push to Remote',
@@ -402,6 +406,8 @@ export const translations: Record<Language, Translations> = {
     pushModifications: 'رفع التعديلات',
     commitAndPushTitle: 'تثبيت ورفع التعديلات',
     commitMsgPlaceholder: 'اكتب وصفاً للتعديلات...',
+    autoGenerateMsg: 'توليد الرسالة تلقائياً',
+    generatedMsgSuccess: 'تم توليد رسالة التثبيت من الملفات المعدلة',
     commitAndPushBtn: 'تثبيت ورفع',
     committingAndPushing: 'جاري التثبيت والرفع...',
     pushToRemote: 'رفع التغييرات إلى المستودع البعيد',

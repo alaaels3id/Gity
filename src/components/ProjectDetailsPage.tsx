@@ -30,12 +30,14 @@ import {
   X,
   RotateCcw,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Sparkles
 } from 'lucide-react';
 import { ProjectItem, ProjectDetails, ChangedFile } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { BranchSelector } from './BranchSelector';
 import { getTechMeta } from '../utils/projectType';
+import { generateCommitMessage } from '../utils/commitMessage';
 
 interface ProjectDetailsPageProps {
   project: ProjectItem;
@@ -73,6 +75,7 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
   const [isCommittingAndPushing, setIsCommittingAndPushing] = useState(false);
   const [showCommitPushModal, setShowCommitPushModal] = useState(false);
   const [commitMessage, setCommitMessage] = useState('');
+  const [generationStyleIndex, setGenerationStyleIndex] = useState(0);
   const [isResetting, setIsResetting] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [includeUntracked, setIncludeUntracked] = useState(true);
@@ -167,6 +170,32 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
     } finally {
       setIsPushing(false);
     }
+  };
+
+  const handleOpenCommitModal = () => {
+    const autoMsg = generateCommitMessage(
+      details?.status?.files || [],
+      details?.status?.branch || project.branch,
+      0
+    );
+    // If empty or never customized, auto-populate with generated message
+    if (!commitMessage.trim()) {
+      setCommitMessage(autoMsg);
+      setGenerationStyleIndex(0);
+    }
+    setShowCommitPushModal(true);
+  };
+
+  const handleAutoGenerateCommitMessage = () => {
+    const nextIndex = generationStyleIndex + 1;
+    const newMsg = generateCommitMessage(
+      details?.status?.files || [],
+      details?.status?.branch || project.branch,
+      nextIndex
+    );
+    setGenerationStyleIndex(nextIndex);
+    setCommitMessage(newMsg);
+    onShowToast?.(t('generatedMsgSuccess'), 'info');
   };
 
   const handleCommitAndPush = async () => {
@@ -881,7 +910,7 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
                   {details?.status && !details.status.clean && (
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => setShowCommitPushModal(true)}
+                        onClick={handleOpenCommitModal}
                         disabled={isResetting || isCommittingAndPushing}
                         className="studio-btn-primary h-8 px-3 text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
                         title={t('pushModifications')}
@@ -1170,16 +1199,28 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
 
             {/* Commit Message Input */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-                Commit Message
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                  Commit Message
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAutoGenerateCommitMessage}
+                  disabled={isCommittingAndPushing}
+                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold text-sky-600 dark:text-sky-400 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 transition-all cursor-pointer select-none active:scale-95"
+                  title={t('autoGenerateMsg')}
+                >
+                  <Sparkles className="w-3 h-3 text-sky-500" />
+                  <span>{t('autoGenerateMsg')}</span>
+                </button>
+              </div>
               <textarea
                 value={commitMessage}
                 onChange={(e) => setCommitMessage(e.target.value)}
                 placeholder={t('commitMsgPlaceholder')}
                 disabled={isCommittingAndPushing}
                 rows={3}
-                className="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.08] focus:border-sky-500 rounded-xl p-3 text-xs text-slate-900 dark:text-white placeholder-slate-400 outline-none resize-none"
+                className="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.08] focus:border-sky-500 rounded-xl p-3 text-xs text-slate-900 dark:text-white placeholder-slate-400 outline-none resize-none font-mono"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -1187,9 +1228,10 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
                   }
                 }}
               />
-              <p className="text-[10px] text-slate-400">
-                Tip: Press <kbd className="font-mono bg-slate-100 dark:bg-white/[0.06] px-1 py-0.5 rounded border border-slate-200 dark:border-white/[0.08]">Cmd+Enter</kbd> to commit & push.
-              </p>
+              <div className="flex items-center justify-between text-[10px] text-slate-400">
+                <span>Tip: Press <kbd className="font-mono bg-slate-100 dark:bg-white/[0.06] px-1 py-0.5 rounded border border-slate-200 dark:border-white/[0.08]">Cmd+Enter</kbd> to commit & push.</span>
+                <span className="font-mono">{commitMessage.length} chars</span>
+              </div>
             </div>
 
             {/* Action Buttons */}
