@@ -31,6 +31,7 @@ export interface Translations {
   projectFolders: string;
   manageFolders: string;
   manageFoldersSubtitle: string;
+  add: string;
   addFolder: string;
   allFolders: string;
   removeFolder: string;
@@ -196,6 +197,7 @@ export const translations: Record<Language, Translations> = {
     projectFolders: 'Project Folders',
     manageFolders: 'Manage Project Folders',
     manageFoldersSubtitle: 'Add, remove, or switch project directories to scan',
+    add: 'Add',
     addFolder: 'Add Folder',
     allFolders: 'All Folders',
     removeFolder: 'Remove Folder',
@@ -359,6 +361,7 @@ export const translations: Record<Language, Translations> = {
     projectFolders: 'مجلدات المشاريع',
     manageFolders: 'إدارة مجلدات المشاريع',
     manageFoldersSubtitle: 'إضافة أو حذف مجلدات المشاريع المراد فحصها',
+    add: 'إضافة',
     addFolder: 'إضافة مجلد',
     allFolders: 'جميع المجلدات',
     removeFolder: 'إزالة المجلد',

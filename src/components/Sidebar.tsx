@@ -279,7 +279,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className="inline-flex items-center gap-1 text-[10px] font-semibold text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-white transition-colors cursor-pointer px-1.5 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/30 border border-sky-500/30"
                 >
                   <Plus className="w-2.5 h-2.5" />
-                  <span>ADD</span>
+                  <span>{t('add')}</span>
                 </button>
               </div>
             </div>
