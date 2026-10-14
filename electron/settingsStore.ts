@@ -27,6 +27,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   projectsPath: '',
   editor: 'code',
   theme: 'dark',
+  pullAllBranches: true,
 };
 
 function getConfigFile(): string {
@@ -65,6 +66,7 @@ export function loadSettings(): AppSettings {
       return {
         ...DEFAULT_SETTINGS,
         ...parsed,
+        pullAllBranches: parsed.pullAllBranches !== undefined ? Boolean(parsed.pullAllBranches) : true,
         projectsPaths: paths,
         projectsPath: paths[0] || defaultDir,
       };

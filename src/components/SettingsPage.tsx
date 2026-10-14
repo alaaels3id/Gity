@@ -21,7 +21,8 @@ import {
   Moon,
   Bell,
   Volume2,
-  Send
+  Send,
+  GitBranch
 } from 'lucide-react';
 import { AppSettings, ProjectItem, NotificationConfig } from '../types';
 import { useLanguage } from '../context/LanguageContext';
@@ -58,6 +59,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [editor, setEditor] = useState(currentSettings.editor || 'code');
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'ar'>(language);
   const [theme, setTheme] = useState<'dark' | 'light'>(currentSettings.theme || 'dark');
+  const [pullAllBranches, setPullAllBranches] = useState<boolean>(currentSettings.pullAllBranches ?? true);
   const [notificationConfig, setNotificationConfig] = useState<NotificationConfig>(() => ({
     enabled: currentSettings.notificationSettings?.enabled ?? (currentSettings.notifications ?? true),
     sound: currentSettings.notificationSettings?.sound ?? true,
@@ -82,6 +84,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     }
     if (currentSettings.theme) {
       setTheme(currentSettings.theme);
+    }
+    if (currentSettings.pullAllBranches !== undefined) {
+      setPullAllBranches(currentSettings.pullAllBranches);
     }
     if (currentSettings.notificationSettings) {
       setNotificationConfig(currentSettings.notificationSettings);
@@ -131,6 +136,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     setEditor('code');
     setSelectedLanguage('en');
     setTheme('dark');
+    setPullAllBranches(true);
     setNotificationConfig({
       enabled: true,
       sound: true,
@@ -212,6 +218,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         projectsPath: folders[0],
         editor,
         theme,
+        pullAllBranches,
         notifications: notificationConfig.enabled,
         notificationSettings: notificationConfig,
       });
@@ -229,6 +236,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     editor !== currentSettings.editor ||
     selectedLanguage !== language ||
     theme !== (currentSettings.theme || 'dark') ||
+    pullAllBranches !== (currentSettings.pullAllBranches ?? true) ||
     JSON.stringify(notificationConfig) !== JSON.stringify(currentSettings.notificationSettings || {
       enabled: currentSettings.notifications ?? true,
       sound: true,
@@ -636,6 +644,48 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   {notificationConfig.pullAlerts && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                 </div>
               </div>
+            </div>
+          </section>
+
+          {/* Card: Git Synchronization Preferences */}
+          <section className="p-6 rounded-2xl studio-card shadow-lg flex flex-col gap-4">
+            <div className="flex items-center gap-3.5 pb-3 border-b border-slate-200 dark:border-white/[0.08]">
+              <div className="w-9 h-9 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-500 shrink-0">
+                <GitBranch className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  {t('gitSyncSection')}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
+                  {t('gitSyncSectionSubtitle')}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] flex items-center justify-between gap-4">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-xs font-medium text-slate-800 dark:text-slate-200">
+                  {t('pullAllBranchesSetting')}
+                </span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">
+                  {t('pullAllBranchesHelp')}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPullAllBranches(prev => !prev)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out ${
+                  pullAllBranches ? 'bg-sky-600' : 'bg-slate-300 dark:bg-slate-700'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out mt-0.5 ${
+                    pullAllBranches ? (isRTL ? '-translate-x-5' : 'translate-x-5') : (isRTL ? '-translate-x-0.5' : 'translate-x-0.5')
+                  }`}
+                />
+              </button>
             </div>
           </section>
 

@@ -139,8 +139,8 @@ function registerIpcHandlers() {
     return await fetchRemote(projectPath);
   });
 
-  ipcMain.handle('projects:pull', async (_, projectPath) => {
-    return await pullProject(projectPath);
+  ipcMain.handle('projects:pull', async (_, projectPath, options) => {
+    return await pullProject(projectPath, options);
   });
 
   ipcMain.handle('projects:push', async (_, { projectPath, force = false }) => {

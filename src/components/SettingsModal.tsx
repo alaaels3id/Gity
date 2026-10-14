@@ -9,7 +9,8 @@ import {
   RotateCcw, 
   Settings as SettingsIcon,
   Languages,
-  AlertCircle
+  AlertCircle,
+  GitBranch
 } from 'lucide-react';
 import { AppSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
@@ -29,7 +30,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onSave,
   onOpenManageFoldersPage,
 }) => {
-  const { t, language, setLanguage } = useLanguage();
+  const { t, language, setLanguage, isRTL } = useLanguage();
   const [folders, setFolders] = useState<string[]>(() => {
     if (currentSettings.projectsPaths && currentSettings.projectsPaths.length > 0) {
       return [...currentSettings.projectsPaths];
@@ -41,6 +42,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   });
   const [editor, setEditor] = useState(currentSettings.editor || 'code');
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'ar'>(language);
+  const [pullAllBranches, setPullAllBranches] = useState<boolean>(currentSettings.pullAllBranches ?? true);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -78,6 +80,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setFolders(currentSettings.projectsPaths?.length ? [...currentSettings.projectsPaths] : []);
     setEditor('code');
     setSelectedLanguage('en');
+    setPullAllBranches(true);
   };
 
   const handleSave = async () => {
@@ -93,6 +96,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         projectsPaths: folders,
         projectsPath: folders[0],
         editor,
+        pullAllBranches,
       });
       onClose();
     } finally {
@@ -254,6 +258,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <option value="phpstorm">PhpStorm (pstorm)</option>
               <option value="subl">Sublime Text (subl)</option>
             </select>
+          </div>
+
+          {/* Git Synchronization Preference */}
+          <div className="flex flex-col gap-2 pt-2 border-t border-slate-200 dark:border-white/[0.08]">
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-500 shrink-0">
+                  <GitBranch className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                    {t('pullAllBranchesSetting')}
+                  </span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal truncate" title={t('pullAllBranchesHelp')}>
+                    {t('pullAllBranchesHelp')}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPullAllBranches(prev => !prev)}
+                className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out ${
+                  pullAllBranches ? 'bg-sky-600' : 'bg-slate-300 dark:bg-slate-700'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out mt-0.5 ${
+                    pullAllBranches ? (isRTL ? '-translate-x-5' : 'translate-x-5') : (isRTL ? '-translate-x-0.5' : 'translate-x-0.5')
+                  }`}
+                />
+              </button>
+            </div>
           </div>
         </div>
 

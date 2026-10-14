@@ -70,6 +70,13 @@ export interface AppSettings {
   theme: 'dark' | 'light';
   notifications?: boolean;
   notificationSettings?: NotificationConfig;
+  pullAllBranches?: boolean;
+}
+
+export interface BranchPullStatus {
+  branch: string;
+  status: 'updated' | 'already-up-to-date' | 'diverged' | 'no-remote' | 'error';
+  message?: string;
 }
 
 export interface FetchResult {
@@ -100,6 +107,7 @@ export interface PullResult {
     behind: number;
     lastCommit: CommitInfo | null;
   };
+  branchesUpdated?: BranchPullStatus[];
 }
 
 export interface RemoteResult {
@@ -184,7 +192,7 @@ export interface GityAPI {
   scanProjects: (folderPaths?: string | string[]) => Promise<ProjectItem[]>;
   openLocation: (projectPath: string) => Promise<boolean>;
   fetchRemote: (projectPath: string) => Promise<FetchResult>;
-  pullProject: (projectPath: string) => Promise<PullResult>;
+  pullProject: (projectPath: string, options?: { allBranches?: boolean }) => Promise<PullResult>;
   pushProject?: (projectPath: string, options?: { force?: boolean }) => Promise<PushResult>;
   commitAndPush?: (projectPath: string, message: string, files?: string[]) => Promise<CommitAndPushResult>;
   getStatus: (projectPath: string) => Promise<DetailedGitStatus>;

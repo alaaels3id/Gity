@@ -266,7 +266,8 @@ export const App: React.FC = () => {
         }
 
         if (res.success) {
-          showToast(`[${projectId}] Pulled successfully in ${res.duration}`, 'success');
+          const detail = res.message ? ` — ${res.message}` : '';
+          showToast(`[${projectId}] Pulled in ${res.duration}${detail}`, 'success');
         } else {
           showToast(`[${projectId}] ${res.message}`, 'error');
         }

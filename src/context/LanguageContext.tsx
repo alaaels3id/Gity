@@ -147,6 +147,11 @@ export interface Translations {
   languageSetting: string;
   notificationsSetting: string;
   notificationsHelp: string;
+  gitSyncSection: string;
+  gitSyncSectionSubtitle: string;
+  pullAllBranchesSetting: string;
+  pullAllBranchesHelp: string;
+  allBranchesUpToDate: string;
   testNotificationBtn: string;
   testNotificationSent: string;
   testNotificationTitle: string;
@@ -313,6 +318,11 @@ export const translations: Record<Language, Translations> = {
     languageSetting: 'Application Language',
     notificationsSetting: 'Desktop Notifications',
     notificationsHelp: 'Receive desktop alerts when bulk operations (Fetch All / Pull All) finish',
+    gitSyncSection: 'Git Synchronization',
+    gitSyncSectionSubtitle: 'Configure branch pulling and remote synchronization preferences',
+    pullAllBranchesSetting: 'Pull all branches on Pull',
+    pullAllBranchesHelp: 'Automatically fetch and fast-forward all local branches tracking remote branches when pulling a project',
+    allBranchesUpToDate: 'All branches are up to date',
     testNotificationBtn: 'Send Test Notification',
     testNotificationSent: 'Test notification sent! Check your screen top-right or notification center.',
     testNotificationTitle: 'Gity - Notification Test',
@@ -477,6 +487,11 @@ export const translations: Record<Language, Translations> = {
     languageSetting: 'لغة التطبيق',
     notificationsSetting: 'إشعارات سطح المكتب (Notifications)',
     notificationsHelp: 'تلقي إشعارات على سطح المكتب عند انتهاء عمليات الجلب والسحب الجماعية',
+    gitSyncSection: 'مزامنة جيت (Git Synchronization)',
+    gitSyncSectionSubtitle: 'تخصيص تفضيلات سحب الفروع والتزامن مع المستودع البعيد',
+    pullAllBranchesSetting: 'سحب كافة الفروع عند عمل Pull',
+    pullAllBranchesHelp: 'جلب وتحديث كافة الفروع المحلية المرتبطة بالمستودع البعيد تلقائياً عند السحب وليس الفرع الحالي فقط',
+    allBranchesUpToDate: 'جميع الفروع محدثة بالفعل',
     testNotificationBtn: 'إرسال إشعار تجريبي',
     testNotificationSent: 'تم إرسال الإشعار التجريبي! تفقد أعلى الشاشة أو مركز الإشعارات.',
     testNotificationTitle: 'Gity - اختبار الإشعارات',

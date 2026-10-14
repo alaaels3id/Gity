@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2026-10-14
+
+### Added
+- **Multi-Branch Pull & Remote Synchronization**:
+  - Automatically fetch all remotes (`git fetch --all --prune`) and fast-forward all local tracking branches at once during project pull operations.
+  - Safe fast-forward verification via `git merge-base --is-ancestor` and atomic reference update with `git update-ref`, preventing data loss or conflict with unpushed commits.
+  - Informative toast and progress reporting detailing which branches were updated, diverged, or up to date.
+  - Dedicated **Git Synchronization** preferences card in Settings and Settings Modal with a toggle switch to enable/disable multi-branch pulling.
+  - Complete Arabic and English localization for all multi-branch sync options.
+- **Optimized Packaging & Code Signing**:
+  - Added `electronLanguages` configuration (`en`, `ar`) to eliminate excessive locale codesigning overhead during macOS release builds.
+  - Automated safe release pipeline script for code signature verification and GitHub Releases publishing.
+
+---
+
 ## [1.3.0] - 2026-09-08
 
 ### Added

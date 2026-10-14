@@ -1,7 +1,8 @@
 import { exec, execFile } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
-import { GitSummary, DetailedGitStatus, FetchResult, PullResult, PushResult, CommitAndPushResult, RemoteResult, ChangedFile, CheckoutResult, ResetResult } from './types';
+import { loadSettings } from './settingsStore';
+import { GitSummary, DetailedGitStatus, FetchResult, PullResult, PushResult, CommitAndPushResult, RemoteResult, ChangedFile, CheckoutResult, ResetResult, BranchPullStatus } from './types';
 
 function getGitEnv(): NodeJS.ProcessEnv {
   const isWin = process.platform === 'win32';
@@ -202,7 +203,10 @@ export async function fetchRemote(projectPath: string): Promise<FetchResult> {
   }
 }
 
-export async function pullProject(projectPath: string): Promise<PullResult> {
+export async function pullProject(
+  projectPath: string,
+  options?: { allBranches?: boolean }
+): Promise<PullResult> {
   if (!isGitRepo(projectPath)) {
     return {
       success: false,
@@ -221,16 +225,182 @@ export async function pullProject(projectPath: string): Promise<PullResult> {
   }
 
   const startTime = Date.now();
+  let pullAllBranches = true;
   try {
-    const stdout = await runGitCommand('git pull', projectPath, 45000);
+    if (options?.allBranches !== undefined) {
+      pullAllBranches = Boolean(options.allBranches);
+    } else {
+      const settings = loadSettings();
+      pullAllBranches = settings.pullAllBranches !== false;
+    }
+  } catch {
+    pullAllBranches = true;
+  }
+
+  try {
+    if (!pullAllBranches) {
+      const stdout = await runGitCommand('git pull', projectPath, 45000);
+      const duration = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+      const updatedSummary = await getGitSummary(projectPath);
+
+      return {
+        success: true,
+        message: stdout || 'Already up to date.',
+        duration,
+        summary: updatedSummary,
+      };
+    }
+
+    // --- Pull All Branches Mode ---
+    // 1. Fetch all remote references & prune deleted remote branches
+    await runGitCli(['fetch', '--all', '--prune'], projectPath, 45000);
+
+    // 2. Identify active branch (HEAD)
+    let activeBranch = '';
+    try {
+      activeBranch = (await runGitCli(['rev-parse', '--abbrev-ref', 'HEAD'], projectPath)).trim();
+    } catch {
+      activeBranch = '';
+    }
+
+    const branchesReport: BranchPullStatus[] = [];
+    const updatedBranches: string[] = [];
+    const divergedBranches: string[] = [];
+
+    // 3. Pull / merge active branch into working directory
+    let currentBranchUpdated = false;
+    if (activeBranch && activeBranch !== 'HEAD') {
+      try {
+        const pullOutput = await runGitCli(['pull'], projectPath, 45000);
+        if (pullOutput && !pullOutput.includes('Already up to date')) {
+          currentBranchUpdated = true;
+          updatedBranches.push(activeBranch);
+          branchesReport.push({ branch: activeBranch, status: 'updated' });
+        } else {
+          branchesReport.push({ branch: activeBranch, status: 'already-up-to-date' });
+        }
+      } catch (pullErr: any) {
+        const errText = pullErr.message || '';
+        if (
+          errText.includes('There is no tracking information for the current branch') ||
+          errText.includes('no tracking info')
+        ) {
+          branchesReport.push({
+            branch: activeBranch,
+            status: 'no-remote',
+            message: 'No upstream configured',
+          });
+        } else {
+          throw pullErr;
+        }
+      }
+    }
+
+    // 4. Discover all local branches and their tracking refs
+    let forEachRefOutput = '';
+    try {
+      forEachRefOutput = await runGitCli(
+        ['for-each-ref', '--format=%(refname:short)|%(upstream:short)', 'refs/heads'],
+        projectPath
+      );
+    } catch {
+      forEachRefOutput = '';
+    }
+
+    const branchLines = forEachRefOutput.split('\n').map(l => l.trim()).filter(Boolean);
+
+    for (const line of branchLines) {
+      const sepIndex = line.indexOf('|');
+      const branchName = sepIndex !== -1 ? line.substring(0, sepIndex).trim() : line.trim();
+      const rawUpstream = sepIndex !== -1 ? line.substring(sepIndex + 1).trim() : '';
+
+      if (!branchName || branchName === activeBranch) {
+        continue; // active branch already handled above
+      }
+
+      let upstreamRef = rawUpstream;
+      if (!upstreamRef) {
+        // Fallback: check if origin/<branchName> exists
+        const originExists = await runGitCli(['rev-parse', '--verify', `refs/remotes/origin/${branchName}`], projectPath)
+          .then(() => true)
+          .catch(() => false);
+        if (originExists) {
+          upstreamRef = `origin/${branchName}`;
+        }
+      }
+
+      if (!upstreamRef) {
+        branchesReport.push({ branch: branchName, status: 'no-remote' });
+        continue;
+      }
+
+      // Check current local hash vs remote tracking hash
+      const [localHash, remoteHash] = await Promise.all([
+        runGitCli(['rev-parse', `refs/heads/${branchName}`], projectPath).catch(() => ''),
+        runGitCli(['rev-parse', upstreamRef], projectPath).catch(() => ''),
+      ]);
+
+      if (!localHash || !remoteHash) {
+        branchesReport.push({ branch: branchName, status: 'no-remote' });
+        continue;
+      }
+
+      if (localHash === remoteHash) {
+        branchesReport.push({ branch: branchName, status: 'already-up-to-date' });
+        continue;
+      }
+
+      // Check if local branch can be fast-forwarded to remote
+      const canFastForward = await runGitCli(
+        ['merge-base', '--is-ancestor', `refs/heads/${branchName}`, upstreamRef],
+        projectPath
+      )
+        .then(() => true)
+        .catch(() => false);
+
+      if (canFastForward) {
+        try {
+          await runGitCli(['update-ref', `refs/heads/${branchName}`, remoteHash], projectPath);
+          updatedBranches.push(branchName);
+          branchesReport.push({ branch: branchName, status: 'updated' });
+        } catch (err: any) {
+          branchesReport.push({
+            branch: branchName,
+            status: 'error',
+            message: err.message || 'Failed to update ref',
+          });
+        }
+      } else {
+        divergedBranches.push(branchName);
+        branchesReport.push({
+          branch: branchName,
+          status: 'diverged',
+          message: 'Has local commits not on remote (non-fast-forward)',
+        });
+      }
+    }
+
     const duration = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
     const updatedSummary = await getGitSummary(projectPath);
 
+    let message = '';
+    if (updatedBranches.length > 0) {
+      message = `Updated ${updatedBranches.length} ${updatedBranches.length === 1 ? 'branch' : 'branches'} (${updatedBranches.join(', ')})`;
+      if (divergedBranches.length > 0) {
+        message += ` • Skipped diverged: ${divergedBranches.join(', ')}`;
+      }
+    } else if (divergedBranches.length > 0) {
+      message = `All tracking branches checked. Skipped diverged: ${divergedBranches.join(', ')}`;
+    } else {
+      message = 'All branches are up to date.';
+    }
+
     return {
       success: true,
-      message: stdout || 'Already up to date.',
+      message,
       duration,
       summary: updatedSummary,
+      branchesUpdated: branchesReport,
     };
   } catch (err: any) {
     const duration = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
@@ -256,6 +426,8 @@ export async function pullProject(projectPath: string): Promise<PullResult> {
       errMsg = 'Access denied: Unable to read from remote repository. Check credentials or SSH keys.';
     } else if (errMsg.includes('Could not resolve host') || errMsg.includes('timed out')) {
       errMsg = 'Network error: Unable to reach remote git server.';
+    } else if (errMsg.includes('No remote repository specified') || errMsg.includes('fatal: No remote repository specified')) {
+      errMsg = 'No remote repository configured for this project.';
     }
 
     return {

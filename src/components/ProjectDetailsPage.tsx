@@ -131,7 +131,8 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({
         if (api?.pullProject) {
           const res = await api.pullProject(project.path);
           if (res.success) {
-            onShowToast?.(`Pulled in ${res.duration}`, 'success');
+            const detail = res.message ? ` — ${res.message}` : '';
+            onShowToast?.(`Pulled in ${res.duration}${detail}`, 'success');
           } else {
             onShowToast?.(res.message, 'error');
           }
